@@ -17,7 +17,7 @@
 
 	var/list/default_soft = list(
 	"/datum/software/OS" ,              \
-	"/datum/software/app/textprinter" , \
+	"/datum/software/app/texttyper"   , \
 	"/datum/software/app/crew_monitor", \
 	)
 
@@ -150,7 +150,7 @@
 	proc/Header()
 		var/text = "<html><head><style type='text/css'>"
 		text += ".prog{width:[screen.width]px;heigth:[screen.heigth]px;float:left;}"
-		text += ".sys{width:200px;height:[screen.heigth]px;float:right;}"
+		text += ".sys{width:200px;height:[screen.heigth]px;float:right;background:#ccc;position:absolute;top:0px;left:[screen.width]px;}"
 		text += "</style></head><body><div class='prog'>"
 		return text
 

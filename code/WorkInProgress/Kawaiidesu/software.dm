@@ -102,13 +102,13 @@
 		updateUsrDialog()
 
 
-/datum/software/app/textprinter
-	name = "Text Printer"
+/datum/software/app/texttyper
+	name = "Text Typer"
 	size = 5
 	display_icon_state = "comm"
 
 	Display(var/mob/user)
-		var/new_text = "Welcome to Text Printer 501.1217<BR>"
+		var/new_text = "Welcome to [name] 501.1217<BR>"
 		new_text += "<A href='?src=\ref[src];exit=1'>Exit to [launchedBy.name].</A>"
 		return new_text
 
