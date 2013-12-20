@@ -26,7 +26,10 @@
 	proc/CheckAccess()
 		return 1
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////OS///////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
 /datum/software/OS
 	name = "Default OS"
 	size = 10
@@ -46,12 +49,11 @@
 				new_text += "------<BR>"
 				new_text += "<A href='?src=\ref[mainframe];BIOS=1'>Reboot</A><BR>"
 			if("Filemanager")
-				var/obj/item/weapon/hardware/harddrive/hard = mainframe.harddrive
 				new_text = "Welcome to SOS File Manager. <A href='?src=\ref[src];mainscreen=1'>Return to main menu</A><BR>"
-				new_text += "You have [hard.current_free_space] TeraByte memory of total [hard.total_space].<BR>"
+				new_text += "You have [mainframe.harddrive.Space()] memory.<BR>"
 				new_text += "Installed programms is:<BR>"
 				var/list/datum/software/apps = list()
-				for(var/datum/software/soft in hard.data)
+				for(var/datum/software/soft in mainframe.harddrive.data)
 					if(soft.isOS())
 						new_text += "\red[soft.name]<BR>"
 					else
@@ -83,7 +85,11 @@
 			app.launchedBy = src
 		else if(href_list["removesoft"])
 			var/datum/software/soft = locate(href_list["removesoft"])
-			mainframe.harddrive.Uninstall(soft)
+			mainframe.harddrive.Remove(soft)
+		else if(href_list["ejectid"])
+			mainframe.auth.Eject()
+		else if(href_list["login"])
+			mainframe.auth.Login()
 		updateUsrDialog()
 
 /datum/software/app
@@ -107,8 +113,8 @@
 		return new_text
 
 	Topic(href, href_list)
-
-
+		if(href_list["exit"])
+			mainframe.SetCurrentSoft(launchedBy)
 		updateUsrDialog()
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -129,7 +135,7 @@
 	//	user.set_machine(src)
 		src.scan()
 		var/t = "<TT><B>Crew Monitoring</B><HR>"
-		t += "<BR><A href='?src=\ref[src];exit=1'>Exit to [launchedBy.name].</A>"
+		t += "<BR><A href='?src=\ref[src];exit=1'>Exit to [launchedBy.name]</A>"
 		t += "<BR><A href='?src=\ref[src];update=1'>Refresh</A> "
 		t += "<table><tr><td width='40%'>Name</td><td width='20%'>Vitals</td><td width='40%'>Position</td></tr>"
 		var/list/logs = list()
@@ -171,7 +177,7 @@
 		return t
 
 
-	scan()
+	proc/scan()
 		for(var/obj/item/clothing/under/C in world)
 			if((C.has_sensor) && (istype(C.loc, /mob/living/carbon/human)))
 				var/check = 0
@@ -192,7 +198,7 @@
 /////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////Medical Records////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
-/datum/software/app/medical_records
+/*datum/software/app/medical_records
 	name = "Medical records"
 	size = 10
 	display_icon_state = "medcomp"
@@ -653,3 +659,4 @@
 
 		updateUsrDialog()
 		return
+*/
