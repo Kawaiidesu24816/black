@@ -12,11 +12,9 @@
 	power_channel = 0
 
 	var/on = 0
-	var/current_screen_text = ""
-	var/datum/software/current_soft = null
-
+	var/datum/software/os/sys = null
 	var/list/default_soft = list(
-	"/datum/software/OS" ,              \
+	"/datum/software/os" ,              \
 	"/datum/software/app/texttyper"   , \
 	"/datum/software/app/crew_monitor", \
 	)
@@ -29,12 +27,11 @@
 
 	New()
 		..()
-		InstallHardware()
-
+		InstallDefaultHardware()
 		for(var/soft in default_soft)
 			harddrive.WriteOn(new soft())
 
-	proc/InstallHardware() //For changing default hardware in childs
+	proc/InstallDefaultHardware() //For changing default hardware in childs
 		screen = new /obj/item/weapon/hardware/screen(src)
 		screen.ChangeScreenSize(400,500)
 		screen.Connect(src)
@@ -48,7 +45,6 @@
 
 		datadriver = new /obj/item/weapon/hardware/authentication(src)
 		datadriver.Connect(src)
-
 
 	proc/TurnOn()
 		if(stat & NOPOWER || use_power == 2)
@@ -67,26 +63,18 @@
 			TurnOn()
 			return
 		if(screen.broken)
-			user.set_machine(src)
-			user << browse("\red Screen is broken :(", "window=mainframe;size=[screen.size];can_resize=0")
-			onclose(user,"mainframe")
-
-		else if(current_soft)
-			user.set_machine(src)
-			current_screen_text = Header() + current_soft.Display(user) + Footer()
-			user << browse(current_screen_text, "window=mainframe;size=[screen.size];can_resize=0")
-			onclose(user,"mainframe")
+			text = "\red Screen is broken :("
+		else if(sys)
+			text = sys.Display(user)
 
 		else
-			current_screen_text = "Welcome to NanoTrasen BIOS.<BR>"
-			current_screen_text += "Prepared for loading. Please, choose OS to boot:<BR>"
-			for(var/datum/software/s in harddrive.data)
-				if(s.isOS())
-					current_screen_text += "<A href='?src=\ref[src];OS=\ref[s]'>[s.name]</A><BR>"
-
-			user.set_machine(src)
-			user << browse(current_screen_text, "window=mainframe;size=[screen.size];can_resize=0")
-			onclose(user,"mainframe")
+			text = "Welcome to NanoTrasen BIOS.<BR>"
+			text += "Prepared for loading. Please, choose OS to boot:<BR>"
+			for(var/datum/software/os/s in harddrive.data)
+				text += "<A href='?src=\ref[src];OS=\ref[s]'>[s.name]</A><BR>"
+		user.set_machine(src)
+		user << browse(text, "window=mainframe;size=[screen.size];can_resize=0")
+		onclose(user,"mainframe")
 
 	attack_ai(var/mob/user as mob)
 		world << "AI interact doesn't work right now"
@@ -106,61 +94,63 @@
 			else
 				usr << "You can't find disk reader"
 
+		updateUsrDialog()
+
 
 	Topic(href, href_list)
 		if(href_list["on-close"])
 			usr.unset_machine()
 			usr << browse(null, "window=mainframe")
 
-		if(href_list["BIOS"])
-			SetCurrentSoft(null)
+		else if(href_list["BIOS"])
+			SetCurrentOS(null)
 
 		else if(href_list["OS"])
 			var/datum/software/os = locate(href_list["OS"])
 			if(!os || !(os in harddrive.data)) return
-			SetCurrentSoft(os)
+			SetCurrentOS(os)
 
-		else if(current_soft)
-			current_soft.Topic(href, href_list)
+		else if(href_list["ejectid"])
+			auth.Eject()
 
-		src.updateUsrDialog()
+		else if(href_list["login"])
+			auth.Login()
 
-		return
+		else if(href_list["logout"])
+			auth.Logout()
 
-	proc/SetCurrentSoft(var/datum/software/soft = null)
+		else if(sys)
+			sys.Topic(href, href_list)
 
-		if(soft && soft in harddrive.data)
-			current_soft = soft
-			soft.Load(src)
+		updateUsrDialog()
+
+	proc/SetCurrentOS(var/datum/software/os/newos = null)
+
+		if(newos && newos in harddrive.data)
+			sys = newos
+			sys.Load(src)
 		else
-			current_soft = null
+			sys = null
+			auth.Logout(0)
 		update_icon()
 
 	update_icon()
 		if(stat & NOPOWER || !on)
 			icon_state = "command[screen.broken ? "b" : "0"]"
-		else if(current_soft)
-			icon_state = current_soft.display_icon_state + "[screen.broken ? "b" : ""]"
+		else if(sys)
+			icon_state = sys.GetIconName() + "[screen.broken ? "b" : ""]"
 		else
 			icon_state = "command[screen.broken ? "b" : ""]"
 
 	power_change()
-		SetCurrentSoft(null)
+		SetCurrentOS(null)
 
-	proc/Header()
-		var/text = "<html><head><style type='text/css'>"
-		text += ".prog{width:[screen.width]px;heigth:[screen.heigth]px;float:left;}"
-		text += ".sys{width:200px;height:[screen.heigth]px;float:right;background:#ccc;position:absolute;top:0px;left:[screen.width]px;}"
-		text += "</style></head><body><div class='prog'>"
-		return text
+	proc/AddLogs(var/text)
+		if(sys)
+			sys.AddLogs(text)
 
-	proc/Footer()
-		var/text = "</div><div class='sys'>"
-		if(auth.logged)
-			text += "Logged in as [auth.username]<BR>"
-			text += "[auth.assignment]"
-			text += "<A href='?src=\ref[src];ejectid=1'>Eject ID</A>"
+	proc/SetIcon(var/text)
+		if(!text)
+			icon_state = "command[on ? "" : "0"]"
 		else
-			text += "Please <A href='?src=\ref[src];login=1'>login</A>"
-		text += "</div></body></html>"
-		return text
+			icon_state = text

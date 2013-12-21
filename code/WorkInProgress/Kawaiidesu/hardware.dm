@@ -34,7 +34,7 @@
 	var/assignment
 	var/list/access = list()
 
-	proc/Login()
+	proc/Login(var/inLog = 1)
 		if(logged)
 			world << "Trying to login when logged at [mainframe.x], [mainframe.y], [mainframe.z]"
 		if(!id)
@@ -43,14 +43,18 @@
 		assignment = id.assignment
 		access = id.access
 		logged = 1
+		if(inLog)
+			mainframe.AddLogs("Logged as [username]")
 
-	proc/Logout()
+	proc/Logout(var/inLog = 1)
 		if(!logged)
 			world << "Trying to logout when not logged at [mainframe.x], [mainframe.y], [mainframe.z]"
 		username = ""
 		assignment = ""
 		access = list()
 		logged = 0
+		if(inLog)
+			mainframe.AddLogs("Logged out")
 
 	proc/Insert(var/obj/item/weapon/card/id/insertedID)
 		if(id)

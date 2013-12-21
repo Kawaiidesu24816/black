@@ -2,16 +2,10 @@
 	var/name = "Default software."
 	var/size = 0
 	var/obj/machinery/newComputer/mainframe/mainframe
-	var/display_icon_state = "command"
+	var/display_icon = "command"
 
 	proc/Display(var/mob/user)
 		return ""
-
-	proc/isOS()
-		return 0
-
-	proc/isApp()
-		return 1
 
 	proc/Load(var/obj/machinery/newComputer/mainframe/M)
 		mainframe = M
@@ -30,48 +24,45 @@
 //////////////////////////////////////////////////OS///////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/datum/software/OS
+/datum/software/os
 	name = "Default OS"
 	size = 10
-	display_icon_state = "ai-fixer"
+	display_icon = "ai-fixer"
 	var/current_state = "Mainscreen"
+	var/datum/software/app/current_prog
+	var/lastlogs[5]
+	var/list/alllogs = list()
 
 	Display(var/mob/user)
-		var/new_text = ""
-		switch(current_state)
-			if("Mainscreen")
-				new_text = "Welcome to Station Operation System (SOS)<BR>"
-				new_text += "Current machine is [mainframe].<BR>"
-				new_text += "<A href='?src=\ref[src];filemanager=1'>Launch filemanager</A><BR>"
-				new_text += "------<BR>"
-				for(var/datum/software/app/app in mainframe.harddrive.data)
-					new_text += "<A href='?src=\ref[src];runapp=\ref[app]'>[app.name]</A><BR>"
-				new_text += "------<BR>"
-				new_text += "<A href='?src=\ref[mainframe];BIOS=1'>Reboot</A><BR>"
-			if("Filemanager")
-				new_text = "Welcome to SOS File Manager. <A href='?src=\ref[src];mainscreen=1'>Return to main menu</A><BR>"
-				new_text += "You have [mainframe.harddrive.Space()] memory.<BR>"
-				new_text += "Installed programms is:<BR>"
-				var/list/datum/software/apps = list()
-				for(var/datum/software/soft in mainframe.harddrive.data)
-					if(soft.isOS())
+		var/new_text = Header()
+		if(current_prog)
+			new_text +=  current_prog.Display()
+		else
+			switch(current_state)
+				if("Mainscreen")
+					new_text += "Welcome to Station Operation System (SOS)<BR>"
+					new_text += "Current machine is [mainframe].<BR>"
+					new_text += "<A href='?src=\ref[src];filemanager=1'>Launch filemanager</A><BR>"
+					new_text += "------<BR>"
+					for(var/datum/software/app/app in mainframe.harddrive.data)
+						new_text += "<A href='?src=\ref[src];runapp=\ref[app]'>[app.name]</A><BR>"
+					new_text += "------<BR>"
+					new_text += "<A href='?src=\ref[mainframe];BIOS=1'>Reboot</A><BR>"
+				if("Filemanager")
+					new_text += "Welcome to SOS File Manager. <A href='?src=\ref[src];mainscreen=1'>Return to main menu</A><BR>"
+					new_text += "You have [mainframe.harddrive.Space()] memory.<BR>"
+					new_text += "Installed programms is:<BR>"
+					for(var/datum/software/os/soft in mainframe.harddrive.data)
 						new_text += "\red[soft.name]<BR>"
-					else
-						apps += soft
-				new_text += "------<BR>"
-				for(var/datum/software/soft in apps)
-					new_text += "<A href='?src=\ref[src];removesoft=\ref[soft]'>(R)</A>[soft.name]<BR>"
-
-		return new_text
-
-	isOS()
-		return 1
-
-	isApp()
-		return 0
+					new_text += "------<BR>"
+					for(var/datum/software/app/soft in mainframe.harddrive.data)
+						new_text += "<A href='?src=\ref[src];removesoft=\ref[soft]'>(R)</A>[soft.name]<BR>"
+		return new_text + Footer()
 
 	Load(var/obj/machinery/newComputer/mainframe/M)
 		..(M)
+		for(var/i = 1; i <= 5; i++)
+			lastlogs[i] = ""
 
 	Topic(href, href_list)
 		if(href_list["mainscreen"])
@@ -80,41 +71,78 @@
 			current_state = "Filemanager"
 		else if(href_list["runapp"])
 			var/datum/software/app/app = locate(href_list["runapp"])
-			world << app
-			mainframe.SetCurrentSoft(app)
-			app.launchedBy = src
+			SetCurrentProg(app)
 		else if(href_list["removesoft"])
 			var/datum/software/soft = locate(href_list["removesoft"])
 			mainframe.harddrive.Remove(soft)
-		else if(href_list["ejectid"])
-			mainframe.auth.Eject()
-		else if(href_list["login"])
-			mainframe.auth.Login()
 		updateUsrDialog()
+
+	proc/Header()
+		var/text = "<html><head><style type='text/css'>"
+		text += ".prog{width:[mainframe.screen.width]px;heigth:[mainframe.screen.heigth]px;float:left;}"
+		text += ".sys{width:200px;height:[mainframe.screen.heigth]px;float:right;background:#ccc;position:absolute;top:0px;left:[mainframe.screen.width]px;}"
+		text += "</style></head><body><div class='prog'>"
+		return text
+
+	proc/Footer()
+		var/text = "</div><div class='sys'>"
+		if(mainframe.auth.logged)
+			text += "Logged in as [mainframe.auth.username]<BR>"
+			text += "[mainframe.auth.assignment]<BR>"
+			text += "<A href='?src=\ref[mainframe];logout=1'>Logout</A><BR>"
+		else
+			text += "Please <A href='?src=\ref[mainframe];login=1'>login</A><BR>"
+		if(mainframe.auth.id)
+			text += "<A href='?src=\ref[mainframe];ejectid=1'>Eject ID</A><BR>"
+		text += "------<BR>"
+		for(var/i = 1; i <= 5; i++)
+			text += lastlogs[i] + "<BR>"
+		text += "</div></body></html>"
+		return text
+
+	proc/SetCurrentProg(var/datum/software/app/app = null)
+		if(app)
+			current_prog = app
+			app.Load(mainframe)
+		else
+			current_prog = null
+
+
+	proc/AddLogs(var/text)
+		for(var/i = 5; i >= 2; i--)
+			lastlogs[i] = lastlogs[i - 1]
+		lastlogs[1] = text
+		alllogs += text
+
+	proc/GetIconName()
+		if(current_prog)
+			return current_prog.display_icon
+		return display_icon
 
 /datum/software/app
-	var/datum/software/OS/launchedBy
+	var/list/required_access = list() //Not a req_one_access cause we have own auth sys
 
 	Topic(href, href_list)
+		. = 0
 		if(href_list["exit"])
-			mainframe.SetCurrentSoft(launchedBy)
-			return
+			mainframe.sys.SetCurrentProg()
+			. = 1
 		updateUsrDialog()
+		return
 
 
 /datum/software/app/texttyper
 	name = "Text Typer"
 	size = 5
-	display_icon_state = "comm"
+	display_icon = "comm"
 
 	Display(var/mob/user)
 		var/new_text = "Welcome to [name] 501.1217<BR>"
-		new_text += "<A href='?src=\ref[src];exit=1'>Exit to [launchedBy.name].</A>"
+		new_text += "<A href='?src=\ref[src];exit=1'>Exit to [mainframe.sys.name].</A>"
 		return new_text
 
 	Topic(href, href_list)
-		if(href_list["exit"])
-			mainframe.SetCurrentSoft(launchedBy)
+		if(..(href, href_list)) return
 		updateUsrDialog()
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -124,7 +152,7 @@
 /datum/software/app/crew_monitor
 	name = "Crew Monitor"
 	size = 15
-	display_icon_state = "crew"
+	display_icon = "crew"
 	var/list/tracked = list()
 
 	Display(var/mob/user)
@@ -135,7 +163,7 @@
 	//	user.set_machine(src)
 		src.scan()
 		var/t = "<TT><B>Crew Monitoring</B><HR>"
-		t += "<BR><A href='?src=\ref[src];exit=1'>Exit to [launchedBy.name]</A>"
+		t += "<BR><A href='?src=\ref[src];exit=1'>Exit to [mainframe.sys.name]</A>"
 		t += "<BR><A href='?src=\ref[src];update=1'>Refresh</A> "
 		t += "<table><tr><td width='40%'>Name</td><td width='20%'>Vitals</td><td width='40%'>Position</td></tr>"
 		var/list/logs = list()
@@ -190,7 +218,7 @@
 		return 1
 
 	Topic(href, href_list)
-		if(..()) return
+		if(..(href, href_list)) return
 		if (mainframe.z > 6)
 			usr << "\red <b>Unable to establish a connection</b>: \black You're too far away from the station!"
 		updateUsrDialog()
@@ -205,99 +233,86 @@
 	var/temp
 
 	Display()
-		var/dat
+
 		if (src.temp)
-			dat = text("<TT>[src.temp]</TT><BR><BR><A href='?src=\ref[src];temp=1'>Clear Screen</A>")
-		else
-			dat = text("Confirm Identity: <A href='?src=\ref[];scan=1'>[]</A><HR>", src, (src.scan ? text("[]", src.scan.name) : "----------"))
-			if (src.authenticated)
-				switch(src.screen)
-					if(1.0)
-						dat += "<A href='?src=\ref[src];search=1'>Search Records</A>"
-						dat += "<BR><A href='?src=\ref[src];screen=2'>List Records</A>"
-						dat += "<BR>"
-						dat += "<BR><A href='?src=\ref[src];screen=5'>Virus Database</A>"
-						dat += "<BR><A href='?src=\ref[src];screen=6'>Medbot Tracking</A>"
-						dat += "<BR>"
-						dat += "<BR><A href='?src=\ref[src];screen=3'>Record Maintenance</A>"
-						dat += "<BR><A href='?src=\ref[src];logout=1'>{Log Out}</A><BR>"
-					if(2.0)
-						dat += "<B>Record List</B>:<HR>"
-						if(!isnull(data_core.general))
-							for(var/datum/data/record/R in sortRecord(data_core.general))
-								dat += text("<A href='?src=\ref[];d_rec=\ref[]'>[]: []<BR>", src, R, R.fields["id"], R.fields["name"])
-						dat += text("<HR><A href='?src=\ref[];screen=1'>Back</A>", src)
-					if(3.0)
-						dat += text("<B>Records Maintenance</B><HR>\n<A href='?src=\ref[];back=1'>Backup To Disk</A><BR>\n<A href='?src=\ref[];u_load=1'>Upload From disk</A><BR>\n<A href='?src=\ref[];del_all=1'>Delete All Records</A><BR>\n<BR>\n<A href='?src=\ref[];screen=1'>Back</A>", src, src, src, src)
-					if(4.0)
-						var/icon/front = new(active1.fields["photo"], dir = SOUTH)
-						var/icon/side = new(active1.fields["photo"], dir = WEST)
-						user << browse_rsc(front, "front.png")
-						user << browse_rsc(side, "side.png")
-						dat += "<CENTER><B>Medical Record</B></CENTER><BR>"
-						if ((istype(src.active1, /datum/data/record) && data_core.general.Find(src.active1)))
-							dat += "<table><tr><td>Name: [active1.fields["name"]] \
-									ID: [active1.fields["id"]]<BR>\n	\
-									Sex: <A href='?src=\ref[src];field=sex'>[active1.fields["sex"]]</A><BR>\n	\
-									Age: <A href='?src=\ref[src];field=age'>[active1.fields["age"]]</A><BR>\n	\
-									Fingerprint: <A href='?src=\ref[src];field=fingerprint'>[active1.fields["fingerprint"]]</A><BR>\n	\
-									Physical Status: <A href='?src=\ref[src];field=p_stat'>[active1.fields["p_stat"]]</A><BR>\n	\
-									Mental Status: <A href='?src=\ref[src];field=m_stat'>[active1.fields["m_stat"]]</A><BR></td><td align = center valign = top> \
-									Photo:<br><img src=front.png height=64 width=64 border=5><img src=side.png height=64 width=64 border=5></td></tr></table>"
-						else
-							dat += "<B>General Record Lost!</B><BR>"
-						if ((istype(src.active2, /datum/data/record) && data_core.medical.Find(src.active2)))
-							dat += text("<BR>\n<CENTER><B>Medical Data</B></CENTER><BR>\nBlood Type: <A href='?src=\ref[];field=b_type'>[]</A><BR>\nDNA: <A href='?src=\ref[];field=b_dna'>[]</A><BR>\n<BR>\nMinor Disabilities: <A href='?src=\ref[];field=mi_dis'>[]</A><BR>\nDetails: <A href='?src=\ref[];field=mi_dis_d'>[]</A><BR>\n<BR>\nMajor Disabilities: <A href='?src=\ref[];field=ma_dis'>[]</A><BR>\nDetails: <A href='?src=\ref[];field=ma_dis_d'>[]</A><BR>\n<BR>\nAllergies: <A href='?src=\ref[];field=alg'>[]</A><BR>\nDetails: <A href='?src=\ref[];field=alg_d'>[]</A><BR>\n<BR>\nCurrent Diseases: <A href='?src=\ref[];field=cdi'>[]</A> (per disease info placed in log/comment section)<BR>\nDetails: <A href='?src=\ref[];field=cdi_d'>[]</A><BR>\n<BR>\nImportant Notes:<BR>\n\t<A href='?src=\ref[];field=notes'>[]</A><BR>\n<BR>\n<CENTER><B>Comments/Log</B></CENTER><BR>", src, src.active2.fields["b_type"], src, src.active2.fields["b_dna"], src, src.active2.fields["mi_dis"], src, src.active2.fields["mi_dis_d"], src, src.active2.fields["ma_dis"], src, src.active2.fields["ma_dis_d"], src, src.active2.fields["alg"], src, src.active2.fields["alg_d"], src, src.active2.fields["cdi"], src, src.active2.fields["cdi_d"], src, src.active2.fields["notes"])
-							var/counter = 1
-							while(src.active2.fields[text("com_[]", counter)])
-								dat += text("[]<BR><A href='?src=\ref[];del_c=[]'>Delete Entry</A><BR><BR>", src.active2.fields[text("com_[]", counter)], src, counter)
-								counter++
-							dat += text("<A href='?src=\ref[];add_c=1'>Add Entry</A><BR><BR>", src)
-							dat += text("<A href='?src=\ref[];del_r=1'>Delete Record (Medical Only)</A><BR><BR>", src)
-						else
-							dat += "<B>Medical Record Lost!</B><BR>"
-							dat += text("<A href='?src=\ref[src];new=1'>New Record</A><BR><BR>")
-						dat += text("\n<A href='?src=\ref[];print_p=1'>Print Record</A><BR>\n<A href='?src=\ref[];screen=2'>Back</A><BR>", src, src)
-					if(5.0)
-						dat += "<CENTER><B>Virus Database</B></CENTER>"
-						/*	Advanced diseases is weak! Feeble! Glory to virus2!
-						for(var/Dt in typesof(/datum/disease/))
-							var/datum/disease/Dis = new Dt(0)
-							if(istype(Dis, /datum/disease/advance))
-								continue // TODO (tm): Add advance diseases to the virus database which no one uses.
-							if(!Dis.desc)
-								continue
-							dat += "<br><a href='?src=\ref[src];vir=[Dt]'>[Dis.name]</a>"
-						*/
-						for (var/ID in virusDB)
-							var/datum/data/record/v = virusDB[ID]
-							dat += "<br><a href='?src=\ref[src];vir=\ref[v]'>[v.fields["name"]]</a>"
-
-						dat += "<br><a href='?src=\ref[src];screen=1'>Back</a>"
-					if(6.0)
-						dat += "<center><b>Medical Robot Monitor</b></center>"
-						dat += "<a href='?src=\ref[src];screen=1'>Back</a>"
-						dat += "<br><b>Medical Robots:</b>"
-						var/bdat = null
-						for(var/obj/machinery/bot/medbot/M in world)
-
-							if(M.z != src.z)	continue	//only find medibots on the same z-level as the computer
-							var/turf/bl = get_turf(M)
-							if(bl)	//if it can't find a turf for the medibot, then it probably shouldn't be showing up
-								bdat += "[M.name] - <b>\[[bl.x],[bl.y]\]</b> - [M.on ? "Online" : "Offline"]<br>"
-								if((!isnull(M.reagent_glass)) && M.use_beaker)
-									bdat += "Reservoir: \[[M.reagent_glass.reagents.total_volume]/[M.reagent_glass.reagents.maximum_volume]\]<br>"
-								else
-									bdat += "Using Internal Synthesizer.<br>"
-						if(!bdat)
-							dat += "<br><center>None detected</center>"
-						else
-							dat += "<br>[bdat]"
-
+			return text("<TT>[src.temp]</TT><BR><BR><A href='?src=\ref[src];temp=1'>Clear Screen</A>")
+		dat = text("Confirm Identity: <A href='?src=\ref[];scan=1'>[]</A><HR>", src, (src.scan ? text("[]", src.scan.name) : "----------"))
+		if (mainframe.auth.logged)
+			switch(src.screen)
+				if(1.0)
+					dat += "<A href='?src=\ref[src];search=1'>Search Records</A>"
+					dat += "<BR><A href='?src=\ref[src];screen=2'>List Records</A>"
+					dat += "<BR>"
+					dat += "<BR><A href='?src=\ref[src];screen=5'>Virus Database</A>"
+					dat += "<BR><A href='?src=\ref[src];screen=6'>Medbot Tracking</A>"
+					dat += "<BR>"
+					dat += "<BR><A href='?src=\ref[src];screen=3'>Record Maintenance</A>"
+					dat += "<BR><A href='?src=\ref[src];logout=1'>{Log Out}</A><BR>"
+				if(2.0)
+					dat += "<B>Record List</B>:<HR>"
+					if(!isnull(data_core.general))
+						for(var/datum/data/record/R in sortRecord(data_core.general))
+							dat += text("<A href='?src=\ref[];d_rec=\ref[]'>[]: []<BR>", src, R, R.fields["id"], R.fields["name"])
+					dat += text("<HR><A href='?src=\ref[];screen=1'>Back</A>", src)
+				if(3.0)
+					dat += text("<B>Records Maintenance</B><HR>\n<A href='?src=\ref[];back=1'>Backup To Disk</A><BR>\n<A href='?src=\ref[];u_load=1'>Upload From disk</A><BR>\n<A href='?src=\ref[];del_all=1'>Delete All Records</A><BR>\n<BR>\n<A href='?src=\ref[];screen=1'>Back</A>", src, src, src, src)
+				if(4.0)
+					var/icon/front = new(active1.fields["photo"], dir = SOUTH)
+					var/icon/side = new(active1.fields["photo"], dir = WEST)
+					user << browse_rsc(front, "front.png")
+					user << browse_rsc(side, "side.png")
+					dat += "<CENTER><B>Medical Record</B></CENTER><BR>"
+					if ((istype(src.active1, /datum/data/record) && data_core.general.Find(src.active1)))
+						dat += "<table><tr><td>Name: [active1.fields["name"]] \
+								ID: [active1.fields["id"]]<BR>\n	\
+								Sex: <A href='?src=\ref[src];field=sex'>[active1.fields["sex"]]</A><BR>\n	\
+								Age: <A href='?src=\ref[src];field=age'>[active1.fields["age"]]</A><BR>\n	\
+								Fingerprint: <A href='?src=\ref[src];field=fingerprint'>[active1.fields["fingerprint"]]</A><BR>\n	\
+								Physical Status: <A href='?src=\ref[src];field=p_stat'>[active1.fields["p_stat"]]</A><BR>\n	\
+								Mental Status: <A href='?src=\ref[src];field=m_stat'>[active1.fields["m_stat"]]</A><BR></td><td align = center valign = top> \
+								Photo:<br><img src=front.png height=64 width=64 border=5><img src=side.png height=64 width=64 border=5></td></tr></table>"
 					else
-			else
-				dat += text("<A href='?src=\ref[];login=1'>{Log In}</A>", src)
-		return text
+						dat += "<B>General Record Lost!</B><BR>"
+					if ((istype(src.active2, /datum/data/record) && data_core.medical.Find(src.active2)))
+						dat += text("<BR>\n<CENTER><B>Medical Data</B></CENTER><BR>\nBlood Type: <A href='?src=\ref[];field=b_type'>[]</A><BR>\nDNA: <A href='?src=\ref[];field=b_dna'>[]</A><BR>\n<BR>\nMinor Disabilities: <A href='?src=\ref[];field=mi_dis'>[]</A><BR>\nDetails: <A href='?src=\ref[];field=mi_dis_d'>[]</A><BR>\n<BR>\nMajor Disabilities: <A href='?src=\ref[];field=ma_dis'>[]</A><BR>\nDetails: <A href='?src=\ref[];field=ma_dis_d'>[]</A><BR>\n<BR>\nAllergies: <A href='?src=\ref[];field=alg'>[]</A><BR>\nDetails: <A href='?src=\ref[];field=alg_d'>[]</A><BR>\n<BR>\nCurrent Diseases: <A href='?src=\ref[];field=cdi'>[]</A> (per disease info placed in log/comment section)<BR>\nDetails: <A href='?src=\ref[];field=cdi_d'>[]</A><BR>\n<BR>\nImportant Notes:<BR>\n\t<A href='?src=\ref[];field=notes'>[]</A><BR>\n<BR>\n<CENTER><B>Comments/Log</B></CENTER><BR>", src, src.active2.fields["b_type"], src, src.active2.fields["b_dna"], src, src.active2.fields["mi_dis"], src, src.active2.fields["mi_dis_d"], src, src.active2.fields["ma_dis"], src, src.active2.fields["ma_dis_d"], src, src.active2.fields["alg"], src, src.active2.fields["alg_d"], src, src.active2.fields["cdi"], src, src.active2.fields["cdi_d"], src, src.active2.fields["notes"])
+						var/counter = 1
+						while(src.active2.fields[text("com_[]", counter)])
+							dat += text("[]<BR><A href='?src=\ref[];del_c=[]'>Delete Entry</A><BR><BR>", src.active2.fields[text("com_[]", counter)], src, counter)
+							counter++
+						dat += text("<A href='?src=\ref[];add_c=1'>Add Entry</A><BR><BR>", src)
+						dat += text("<A href='?src=\ref[];del_r=1'>Delete Record (Medical Only)</A><BR><BR>", src)
+					else
+						dat += "<B>Medical Record Lost!</B><BR>"
+						dat += text("<A href='?src=\ref[src];new=1'>New Record</A><BR><BR>")
+					dat += text("\n<A href='?src=\ref[];print_p=1'>Print Record</A><BR>\n<A href='?src=\ref[];screen=2'>Back</A><BR>", src, src)
+				if(5.0)
+					dat += "<CENTER><B>Virus Database</B></CENTER>"
+					for (var/ID in virusDB)
+						var/datum/data/record/v = virusDB[ID]
+						dat += "<br><a href='?src=\ref[src];vir=\ref[v]'>[v.fields["name"]]</a>"
+						dat += "<br><a href='?src=\ref[src];screen=1'>Back</a>"
+				if(6.0)
+					dat += "<center><b>Medical Robot Monitor</b></center>"
+					dat += "<a href='?src=\ref[src];screen=1'>Back</a>"
+					dat += "<br><b>Medical Robots:</b>"
+					var/bdat = null
+					for(var/obj/machinery/bot/medbot/M in world)
+							if(M.z != src.z)	continue	//only find medibots on the same z-level as the computer
+						var/turf/bl = get_turf(M)
+						if(bl)	//if it can't find a turf for the medibot, then it probably shouldn't be showing up
+							bdat += "[M.name] - <b>\[[bl.x],[bl.y]\]</b> - [M.on ? "Online" : "Offline"]<br>"
+							if((!isnull(M.reagent_glass)) && M.use_beaker)
+								bdat += "Reservoir: \[[M.reagent_glass.reagents.total_volume]/[M.reagent_glass.reagents.maximum_volume]\]<br>"
+							else
+								bdat += "Using Internal Synthesizer.<br>"
+					if(!bdat)
+						dat += "<br><center>None detected</center>"
+					else
+						dat += "<br>[bdat]"
+					else
+		else
+			dat += text("<A href='?src=\ref[];login=1'>{Log In}</A>", src)
+	return text
 
 	Topic(href, href_list)
 		if(..())
@@ -659,4 +674,4 @@
 
 		updateUsrDialog()
 		return
-*/
+		*/
