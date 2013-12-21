@@ -62,18 +62,18 @@
 		if(!on)
 			TurnOn()
 			return
+		var/t = ""
 		if(screen.broken)
-			text = "\red Screen is broken :("
+			t = "\red Screen is broken :("
 		else if(sys)
-			text = sys.Display(user)
-
+			t = sys.Display(user)
 		else
-			text = "Welcome to NanoTrasen BIOS.<BR>"
-			text += "Prepared for loading. Please, choose OS to boot:<BR>"
+			t = "Welcome to NanoTrasen BIOS.<BR>"
+			t += "Prepared for loading. Please, choose OS to boot:<BR>"
 			for(var/datum/software/os/s in harddrive.data)
-				text += "<A href='?src=\ref[src];OS=\ref[s]'>[s.name]</A><BR>"
+				t += "<A href='?src=\ref[src];OS=\ref[s]'>[s.name]</A><BR>"
 		user.set_machine(src)
-		user << browse(text, "window=mainframe;size=[screen.size];can_resize=0")
+		user << browse(t, "window=mainframe;size=[screen.size];can_resize=0")
 		onclose(user,"mainframe")
 
 	attack_ai(var/mob/user as mob)
@@ -148,12 +148,12 @@
 	power_change()
 		SetCurrentOS(null)
 
-	proc/AddLogs(var/text)
+	proc/AddLogs(var/t)
 		if(sys)
-			sys.AddLogs(text)
+			sys.AddLogs(t)
 
-	proc/SetIcon(var/text)
-		if(!text)
+	proc/SetIcon(var/t)
+		if(!t)
 			icon_state = "command[on ? "" : "0"]"
 		else
-			icon_state = text
+			icon_state = t

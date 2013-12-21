@@ -37,48 +37,48 @@
 	var/list/alllogs = list()
 
 	Display(var/mob/user)
-		var/text = Header()
+		var/t = Header()
 		if(current_prog)
-			text +=  current_prog.Display()
+			t +=  current_prog.Display()
 		else
 			switch(current_state)
 				if("Mainscreen")
-					text += "Welcome to Station Operation System (SOS)<BR>"
-					text += "Current machine is [mainframe].<BR>"
-					text += "<A href='?src=\ref[src];filemanager=1'>Launch filemanager</A><BR>"
-					text += "------<BR>"
+					t += "Welcome to Station Operation System (SOS)<BR>"
+					t += "Current machine is [mainframe].<BR>"
+					t += "<A href='?src=\ref[src];filemanager=1'>Launch filemanager</A><BR>"
+					t += "------<BR>"
 					for(var/datum/software/app/app in mainframe.harddrive.data)
-						text += "<A href='?src=\ref[src];runapp=\ref[app]'>[app.name]</A><BR>"
-					text += "------<BR>"
-					text += "<A href='?src=\ref[mainframe];BIOS=1'>Reboot</A><BR>"
+						t += "<A href='?src=\ref[src];runapp=\ref[app]'>[app.name]</A><BR>"
+					t += "------<BR>"
+					t += "<A href='?src=\ref[mainframe];BIOS=1'>Reboot</A><BR>"
 				if("Filemanager")
-					text += "Welcome to SOS File Manager. <A href='?src=\ref[src];mainscreen=1'>Return to main menu</A><BR>"
-					text += "You have [mainframe.harddrive.Space()] memory.<BR>"
-					text += "Installed programms is:<BR>"
+					t += "Welcome to SOS File Manager. <A href='?src=\ref[src];mainscreen=1'>Return to main menu</A><BR>"
+					t += "You have [mainframe.harddrive.Space()] memory.<BR>"
+					t += "Installed programms is:<BR>"
 					for(var/datum/software/os/soft in mainframe.harddrive.data)
-						text += "\red[soft.name]<BR>"
-					text += "------<BR>"
+						t += "\red[soft.name]<BR>"
+					t += "------<BR>"
 					for(var/datum/software/app/soft in mainframe.harddrive.data)
-						text += "<A href='?src=\ref[src];removesoft=\ref[soft]'>(R)</A>[soft.name]<BR>"
-					text += "------<BR>"
+						t += "<A href='?src=\ref[src];removesoft=\ref[soft]'>(R)</A>[soft.name]<BR>"
+					t += "------<BR>"
 					if(!mainframe.datadriver)
-						text += "\red Datadriver not found.<BR>"
+						t += "\red Datadriver not found.<BR>"
 					else
-						text += "Prepared to install<BR>"
+						t += "Prepared to install<BR>"
 						if(mainframe.datadriver.disk)
 							for(var/datum/software/soft in mainframe.datadriver.disk.data)
 								var/state = mainframe.harddrive.Problem(soft)
 								if(!state)
-									text += "\green <A href='?src=\ref[src];installsoft=\ref[soft]'>[soft.name]</A>"
+									t += "\green <A href='?src=\ref[src];installsoft=\ref[soft]'>[soft.name]</A>"
 								else if(state == 1)
-									text += "[soft.name] is already installed."
+									t += "[soft.name] is already installed."
 								else if(state == 2)
-									text += "\red Have not enough space to install [soft.name]"
-								text += "<BR>"
+									t += "\red Have not enough space to install [soft.name]"
+								t += "<BR>"
 						else
-							text += "Datadriver is ready to read disk"
+							t += "Datadriver is ready to read disk"
 
-		return text + Footer()
+		return t + Footer()
 
 	Load(var/obj/machinery/newComputer/mainframe/M)
 		..(M)
@@ -102,19 +102,23 @@
 		updateUsrDialog()
 
 	proc/Header()
-		var/text = "<html><head><style type='text/css'>"
-		text += ".prog{width:[mainframe.screen.width]px;heigth:[mainframe.screen.heigth]px;float:left;}"
-		text += ".sys{width:200px;height:[mainframe.screen.heigth]px;float:right;background:#ccc;position:absolute;top:0px;left:[mainframe.screen.width]px;}"
-		text += "</style></head><body><div class='prog'>"
+		var/text = {"
+		<html><head><style type='text/css'>
+		.prog{width:[mainframe.screen.width]px;heigth:[mainframe.screen.heigth]px;float:left;}
+		.sys{width:200px;height:[mainframe.screen.heigth]px;float:right;background:#ccc;position:absolute;top:0px;left:[mainframe.screen.width]px;}
+		</style></head><body><div class='prog'>
+		"}
 		return text
 
 	proc/Footer()
 		var/text = "</div><div class='sys'>"
 		if(mainframe.auth)
 			if(mainframe.auth.logged)
-				text += "Logged in as [mainframe.auth.username]<BR>"
-				text += "[mainframe.auth.assignment]<BR>"
-				text += "<A href='?src=\ref[mainframe];logout=1'>Logout</A><BR>"
+				text += {"
+				Logged in as [mainframe.auth.username]<BR>
+				[mainframe.auth.assignment]<BR>
+				<A href='?src=\ref[mainframe];logout=1'>Logout</A><BR>
+				"}
 			else
 				text += "Please <A href='?src=\ref[mainframe];login=1'>login</A><BR>"
 			if(mainframe.auth.id)
