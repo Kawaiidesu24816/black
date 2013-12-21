@@ -20,6 +20,9 @@
 	proc/CheckAccess()
 		return 1
 
+	proc/Copy()
+		return new type()
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////OS///////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -34,30 +37,48 @@
 	var/list/alllogs = list()
 
 	Display(var/mob/user)
-		var/new_text = Header()
+		var/text = Header()
 		if(current_prog)
-			new_text +=  current_prog.Display()
+			text +=  current_prog.Display()
 		else
 			switch(current_state)
 				if("Mainscreen")
-					new_text += "Welcome to Station Operation System (SOS)<BR>"
-					new_text += "Current machine is [mainframe].<BR>"
-					new_text += "<A href='?src=\ref[src];filemanager=1'>Launch filemanager</A><BR>"
-					new_text += "------<BR>"
+					text += "Welcome to Station Operation System (SOS)<BR>"
+					text += "Current machine is [mainframe].<BR>"
+					text += "<A href='?src=\ref[src];filemanager=1'>Launch filemanager</A><BR>"
+					text += "------<BR>"
 					for(var/datum/software/app/app in mainframe.harddrive.data)
-						new_text += "<A href='?src=\ref[src];runapp=\ref[app]'>[app.name]</A><BR>"
-					new_text += "------<BR>"
-					new_text += "<A href='?src=\ref[mainframe];BIOS=1'>Reboot</A><BR>"
+						text += "<A href='?src=\ref[src];runapp=\ref[app]'>[app.name]</A><BR>"
+					text += "------<BR>"
+					text += "<A href='?src=\ref[mainframe];BIOS=1'>Reboot</A><BR>"
 				if("Filemanager")
-					new_text += "Welcome to SOS File Manager. <A href='?src=\ref[src];mainscreen=1'>Return to main menu</A><BR>"
-					new_text += "You have [mainframe.harddrive.Space()] memory.<BR>"
-					new_text += "Installed programms is:<BR>"
+					text += "Welcome to SOS File Manager. <A href='?src=\ref[src];mainscreen=1'>Return to main menu</A><BR>"
+					text += "You have [mainframe.harddrive.Space()] memory.<BR>"
+					text += "Installed programms is:<BR>"
 					for(var/datum/software/os/soft in mainframe.harddrive.data)
-						new_text += "\red[soft.name]<BR>"
-					new_text += "------<BR>"
+						text += "\red[soft.name]<BR>"
+					text += "------<BR>"
 					for(var/datum/software/app/soft in mainframe.harddrive.data)
-						new_text += "<A href='?src=\ref[src];removesoft=\ref[soft]'>(R)</A>[soft.name]<BR>"
-		return new_text + Footer()
+						text += "<A href='?src=\ref[src];removesoft=\ref[soft]'>(R)</A>[soft.name]<BR>"
+					text += "------<BR>"
+					if(!mainframe.datadriver)
+						text += "\red Datadriver not found.<BR>"
+					else
+						text += "Prepared to install<BR>"
+						if(mainframe.datadriver.disk)
+							for(var/datum/software/soft in mainframe.datadriver.disk.data)
+								var/state = mainframe.harddrive.Problem(soft)
+								if(!state)
+									text += "\green <A href='?src=\ref[src];installsoft=\ref[soft]'>[soft.name]</A>"
+								else if(state == 1)
+									text += "[soft.name] is already installed."
+								else if(state == 2)
+									text += "\red Have not enough space to install [soft.name]"
+								text += "<BR>"
+						else
+							text += "Datadriver is ready to read disk"
+
+		return text + Footer()
 
 	Load(var/obj/machinery/newComputer/mainframe/M)
 		..(M)
@@ -72,6 +93,9 @@
 		else if(href_list["runapp"])
 			var/datum/software/app/app = locate(href_list["runapp"])
 			SetCurrentProg(app)
+		else if(href_list["installsoft"])
+			var/datum/software/soft = locate(href_list["installsoft"])
+			mainframe.harddrive.WriteOn(soft.Copy())
 		else if(href_list["removesoft"])
 			var/datum/software/soft = locate(href_list["removesoft"])
 			mainframe.harddrive.Remove(soft)
@@ -86,14 +110,18 @@
 
 	proc/Footer()
 		var/text = "</div><div class='sys'>"
-		if(mainframe.auth.logged)
-			text += "Logged in as [mainframe.auth.username]<BR>"
-			text += "[mainframe.auth.assignment]<BR>"
-			text += "<A href='?src=\ref[mainframe];logout=1'>Logout</A><BR>"
-		else
-			text += "Please <A href='?src=\ref[mainframe];login=1'>login</A><BR>"
-		if(mainframe.auth.id)
-			text += "<A href='?src=\ref[mainframe];ejectid=1'>Eject ID</A><BR>"
+		if(mainframe.auth)
+			if(mainframe.auth.logged)
+				text += "Logged in as [mainframe.auth.username]<BR>"
+				text += "[mainframe.auth.assignment]<BR>"
+				text += "<A href='?src=\ref[mainframe];logout=1'>Logout</A><BR>"
+			else
+				text += "Please <A href='?src=\ref[mainframe];login=1'>login</A><BR>"
+			if(mainframe.auth.id)
+				text += "<A href='?src=\ref[mainframe];ejectid=1'>Eject ID</A><BR>"
+		if(mainframe.datadriver)
+			if(mainframe.datadriver.disk)
+				text += "<A href='?src=\ref[mainframe];ejectdisk=1'>Eject Disk</A><BR>"
 		text += "------<BR>"
 		for(var/i = 1; i <= 5; i++)
 			text += lastlogs[i] + "<BR>"

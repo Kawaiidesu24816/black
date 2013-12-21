@@ -43,7 +43,7 @@
 		auth = new /obj/item/weapon/hardware/authentication(src)
 		auth.Connect(src)
 
-		datadriver = new /obj/item/weapon/hardware/authentication(src)
+		datadriver = new /obj/item/weapon/hardware/datadriver(src)
 		datadriver.Connect(src)
 
 	proc/TurnOn()
@@ -111,13 +111,16 @@
 			SetCurrentOS(os)
 
 		else if(href_list["ejectid"])
-			auth.Eject()
+			if(auth) auth.Eject()
+
+		else if(href_list["ejectdisk"])
+			if(datadriver) datadriver.Eject()
 
 		else if(href_list["login"])
-			auth.Login()
+			if(auth) auth.Login()
 
 		else if(href_list["logout"])
-			auth.Logout()
+			if(auth) auth.Logout()
 
 		else if(sys)
 			sys.Topic(href, href_list)

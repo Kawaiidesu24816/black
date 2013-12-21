@@ -73,23 +73,23 @@
 		id = null
 
 /obj/item/weapon/hardware/datadriver
-	var/obj/item/weapon/hardware/memory/disk/data
+	var/obj/item/weapon/hardware/memory/disk/disk
 
 	proc/Insert(var/obj/item/weapon/hardware/memory/disk/d)
-		if(data)
-			usr << "\red You can't insert your disc into driver. Something prevent it."
+		if(disk)
+			usr << "\red You can't insert your disk into driver. Something prevent it."
 			return
 		if(istype(d.loc, /mob))
 			var/mob/user = d.loc
 			user.drop_item()
 		d.loc = src
-		data = d
+		disk = d
 
 	proc/Eject()
-		if(!data)
+		if(!disk)
 			return
-		data.loc = mainframe.loc
-		data = null
+		disk.loc = mainframe.loc
+		disk = null
 
 /////////////////////////MEMORY/////////////////////
 
@@ -105,8 +105,6 @@
 		data = list()
 
 	proc/WriteOn(var/datum/software/soft)
-		if(soft in data)
-			return 0
 		if(soft.size > current_free_space)
 			return 0
 		data += soft
@@ -127,18 +125,30 @@
 	total_memory = 50
 	current_free_space = 50
 
-	proc/CanInstall(var/datum/software/soft)
-		if(soft in data)
-			return "This soft is already installed"
+	proc/Problem(var/datum/software/soft)
+		//for(var/datum/software/app in data)
+		//	if(app.name == soft.name)
+		//		return 1
 		if(soft.size > current_free_space)
-			return "\red You have not enough space for install"
-		return "\green All ready for installing"
+			return 2
+		return 0
+
 
 /obj/item/weapon/hardware/memory/disk
 	icon = 'icons/obj/cloning.dmi'
 	icon_state = "datadisk0"
 	item_state = "card-id"
+	var/list/default_soft = list(
+	"/datum/software/os" ,              \
+	"/datum/software/app/texttyper"   , \
+	"/datum/software/app/crew_monitor", \
+	)
 	var/protected = 0
+
+	New()
+		..()
+		for(var/soft in default_soft)
+			WriteOn(new soft())
 
 	WriteOn(var/datum/software/soft)
 		if(!protected)
