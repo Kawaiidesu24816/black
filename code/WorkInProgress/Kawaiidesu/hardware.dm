@@ -43,8 +43,8 @@
 		assignment = id.assignment
 		access = id.access
 		logged = 1
-		if(inLog)
-			mainframe.AddLogs("Logged as [username]")
+		if(inLog && mainframe.sys)
+			mainframe.sys.AddLogs("Logged as [username]")
 
 	proc/Logout(var/inLog = 1)
 		if(!logged)
@@ -53,8 +53,8 @@
 		assignment = ""
 		access = list()
 		logged = 0
-		if(inLog)
-			mainframe.AddLogs("Logged out")
+		if(inLog && mainframe.sys)
+			mainframe.sys.AddLogs("Logged out")
 
 	proc/Insert(var/obj/item/weapon/card/id/insertedID)
 		if(id)
@@ -71,6 +71,11 @@
 			return
 		id.loc = mainframe.loc
 		id = null
+
+	proc/CheckAccess(var/list/accesses)
+		if(accesses & access)
+			return 1
+		return 0
 
 /obj/item/weapon/hardware/datadriver
 	var/obj/item/weapon/hardware/memory/disk/disk
@@ -105,25 +110,22 @@
 		data = list()
 
 	proc/WriteOn(var/datum/software/soft)
+		soft = soft.Copy()
 		if(soft.size > current_free_space)
 			return 0
-		data += soft
+		data.Add(soft)
 		current_free_space -= soft.size
 		return 1
 
 	proc/Remove(var/datum/software/soft)
 		if(!(soft in data))
 			return 0
-		data -= soft
+		data.Remove(soft)
+		//del soft
 		current_free_space = min(total_memory, current_free_space + soft.size)
 
 	proc/Space()
 		return "[current_free_space] of [total_memory] TeraByte"
-
-
-/obj/item/weapon/hardware/memory/harddrive
-	total_memory = 50
-	current_free_space = 50
 
 	proc/Problem(var/datum/software/soft)
 		//for(var/datum/software/app in data)
@@ -133,15 +135,31 @@
 			return 2
 		return 0
 
+	Topic(href, href_list)
+		if(href_list["writeon"])
+			var/datum/software/soft = locate(href_list["writeon"])
+			WriteOn(soft)
+			if(mainframe)
+				mainframe.updateUsrDialog()
+
+		else if(href_list["remove"])
+			var/datum/software/soft = locate(href_list["remove"])
+			Remove(soft)
+			if(mainframe)
+				mainframe.updateUsrDialog()
+
+
+/obj/item/weapon/hardware/memory/hdd
+	total_memory = 50
+	current_free_space = 50
+
 
 /obj/item/weapon/hardware/memory/disk
 	icon = 'icons/obj/cloning.dmi'
 	icon_state = "datadisk0"
 	item_state = "card-id"
 	var/list/default_soft = list(
-	"/datum/software/os" ,              \
-	"/datum/software/app/texttyper"   , \
-	"/datum/software/app/crew_monitor", \
+	"/datum/software/app/medical_records"              , \
 	)
 	var/protected = 0
 

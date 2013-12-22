@@ -13,38 +13,40 @@
 
 	var/on = 0
 	var/datum/software/os/sys = null
+
 	var/list/default_soft = list(
-	"/datum/software/os" ,              \
+	"/datum/software/os/sos" ,          \
 	"/datum/software/app/texttyper"   , \
 	"/datum/software/app/crew_monitor", \
 	)
 
+	//Hardware
 	var/obj/item/weapon/hardware/screen/screen
-	var/obj/item/weapon/hardware/memory/harddrive/harddrive
+	var/obj/item/weapon/hardware/memory/hdd/hdd
 	var/obj/item/weapon/hardware/authentication/auth
-	var/obj/item/weapon/hardware/datadriver/datadriver
+	var/obj/item/weapon/hardware/datadriver/reader
 
 
 	New()
 		..()
 		InstallDefaultHardware()
 		for(var/soft in default_soft)
-			harddrive.WriteOn(new soft())
+			hdd.WriteOn(new soft())
 
 	proc/InstallDefaultHardware() //For changing default hardware in childs
 		screen = new /obj/item/weapon/hardware/screen(src)
 		screen.ChangeScreenSize(400,500)
 		screen.Connect(src)
 
-		harddrive = new /obj/item/weapon/hardware/memory/harddrive(src)
-		harddrive.ChangeMemorySize(100)
-		harddrive.Connect(src)
+		hdd = new /obj/item/weapon/hardware/memory/hdd(src)
+		hdd.ChangeMemorySize(100)
+		hdd.Connect(src)
 
 		auth = new /obj/item/weapon/hardware/authentication(src)
 		auth.Connect(src)
 
-		datadriver = new /obj/item/weapon/hardware/datadriver(src)
-		datadriver.Connect(src)
+		reader = new /obj/item/weapon/hardware/datadriver(src)
+		reader.Connect(src)
 
 	proc/TurnOn()
 		if(stat & NOPOWER || use_power == 2)
@@ -57,24 +59,26 @@
 		use_power = 1
 		on = 0
 		update_icon()
+		usr.unset_machine()
+		usr << browse(null, "window=mainframe")
+		SetCurrentOS(null)
 
 	attack_hand(var/mob/user as mob)
 		if(!on)
 			TurnOn()
 			return
 		var/t = ""
-		if(screen.broken)
-			t = "\red Screen is broken :("
-		else if(sys)
+		if(sys)
 			t = sys.Display(user)
 		else
 			t = "Welcome to NanoTrasen BIOS.<BR>"
 			t += "Prepared for loading. Please, choose OS to boot:<BR>"
-			for(var/datum/software/os/s in harddrive.data)
+			for(var/datum/software/os/s in hdd.data)
 				t += "<A href='?src=\ref[src];OS=\ref[s]'>[s.name]</A><BR>"
 		user.set_machine(src)
 		user << browse(t, "window=mainframe;size=[screen.size];can_resize=0")
 		onclose(user,"mainframe")
+		update_icon()
 
 	attack_ai(var/mob/user as mob)
 		world << "AI interact doesn't work right now"
@@ -89,8 +93,8 @@
 			else
 				usr << "You can't find auth slot"
 		else if(istype(O, /obj/item/weapon/hardware/memory/disk))
-			if(datadriver)
-				datadriver.Insert(O)
+			if(reader)
+				reader.Insert(O)
 			else
 				usr << "You can't find disk reader"
 
@@ -102,19 +106,23 @@
 			usr.unset_machine()
 			usr << browse(null, "window=mainframe")
 
+		else if(href_list["turnoff"])
+			TurnOff()
+			return
+
 		else if(href_list["BIOS"])
 			SetCurrentOS(null)
 
 		else if(href_list["OS"])
 			var/datum/software/os = locate(href_list["OS"])
-			if(!os || !(os in harddrive.data)) return
+			if(!os || !(os in hdd.data)) return
 			SetCurrentOS(os)
 
 		else if(href_list["ejectid"])
 			if(auth) auth.Eject()
 
 		else if(href_list["ejectdisk"])
-			if(datadriver) datadriver.Eject()
+			if(reader) reader.Eject()
 
 		else if(href_list["login"])
 			if(auth) auth.Login()
@@ -129,13 +137,23 @@
 
 	proc/SetCurrentOS(var/datum/software/os/newos = null)
 
-		if(newos && newos in harddrive.data)
+		if(newos && newos in hdd.data)
 			sys = newos
 			sys.Load(src)
 		else
 			sys = null
-			auth.Logout(0)
-		update_icon()
+			if(auth.logged)
+				auth.Logout(0)
+
+	proc/AccessProblem(var/list/access)
+		if(!auth)
+			return 1
+		if(!auth.logged)
+			return 2
+		if(!(auth.access & access))
+			return 3
+		return 0
+
 
 	update_icon()
 		if(stat & NOPOWER || !on)
@@ -148,12 +166,7 @@
 	power_change()
 		SetCurrentOS(null)
 
-	proc/AddLogs(var/t)
-		if(sys)
-			sys.AddLogs(t)
-
-	proc/SetIcon(var/t)
-		if(!t)
-			icon_state = "command[on ? "" : "0"]"
-		else
-			icon_state = t
+	process()
+		if(on && sys)
+			for(var/datum/software/soft in hdd.data)
+				soft.Update()
