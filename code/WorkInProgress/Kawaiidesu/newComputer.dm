@@ -15,9 +15,10 @@
 	var/datum/software/os/sys = null
 
 	var/list/default_soft = list(
-	"/datum/software/os/sos" ,          \
-	"/datum/software/app/texttyper"   , \
-	"/datum/software/app/crew_monitor", \
+	"/datum/software/os/sos"              ,\
+	"/datum/software/app/texttyper"       ,\
+	"/datum/software/app/crew_monitor"    ,\
+	"/datum/software/app/medical_records" ,\
 	)
 
 	//Hardware
@@ -61,7 +62,7 @@
 		update_icon()
 		usr.unset_machine()
 		usr << browse(null, "window=mainframe")
-		SetCurrentOS(null)
+		LaunchOS(null)
 
 	attack_hand(var/mob/user as mob)
 		if(!on)
@@ -111,12 +112,29 @@
 			return
 
 		else if(href_list["BIOS"])
-			SetCurrentOS(null)
+			LaunchOS(null)
 
 		else if(href_list["OS"])
 			var/datum/software/os = locate(href_list["OS"])
 			if(!os || !(os in hdd.data)) return
-			SetCurrentOS(os)
+			LaunchOS(os)
+
+		else if(href_list["hddwriteon"])
+			if(hdd)
+				var/datum/software/soft = locate(href_list["hddwriteon"])
+				hdd.WriteOn(locate(soft))
+				soft.Load(src)
+
+		else if(href_list["hddremove"])
+			if(hdd)
+				var/datum/software/soft = locate(href_list["hddwriteon"])
+				hdd.Remove(locate(soft))
+
+		else if(href_list["diskwriteon"])
+			if(!ReaderProblem()) reader.disk.WriteOn(locate(href_list["diskwriteon"]))
+
+		else if(href_list["diskremove"])
+			if(!ReaderProblem()) reader.disk.Remove(locate(href_list["diskremove"]))
 
 		else if(href_list["ejectid"])
 			if(auth) auth.Eject()
@@ -135,7 +153,7 @@
 
 		updateUsrDialog()
 
-	proc/SetCurrentOS(var/datum/software/os/newos = null)
+	proc/LaunchOS(var/datum/software/os/newos = null)
 
 		if(newos && newos in hdd.data)
 			sys = newos
@@ -150,10 +168,21 @@
 			return 1
 		if(!auth.logged)
 			return 2
-		if(!(auth.access & access))
+		if(!auth.CheckAccess(access))
 			return 3
 		return 0
 
+	proc/MemoryProblem()
+		if(!hdd)
+			return 1
+		return 0
+
+	proc/ReaderProblem()
+		if(!reader)
+			return 1
+		if(!reader.disk)
+			return 2
+		return 0
 
 	update_icon()
 		if(stat & NOPOWER || !on)
@@ -164,7 +193,7 @@
 			icon_state = "command[screen.broken ? "b" : ""]"
 
 	power_change()
-		SetCurrentOS(null)
+		LaunchOS(null)
 
 	process()
 		if(on && sys)

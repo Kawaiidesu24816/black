@@ -72,9 +72,14 @@
 		id.loc = mainframe.loc
 		id = null
 
-	proc/CheckAccess(var/list/accesses)
-		if(accesses & access)
-			return 1
+	proc/CheckAccess(var/list/input)
+		world << input.len
+		world << "----"
+		world << access.len
+		for(var/req in input)
+			if(req in access)
+				world << "[req] is right"
+				return 1
 		return 0
 
 /obj/item/weapon/hardware/datadriver
@@ -121,8 +126,8 @@
 		if(!(soft in data))
 			return 0
 		data.Remove(soft)
-		//del soft
 		current_free_space = min(total_memory, current_free_space + soft.size)
+		del soft
 
 	proc/Space()
 		return "[current_free_space] of [total_memory] TeraByte"
@@ -135,19 +140,6 @@
 			return 2
 		return 0
 
-	Topic(href, href_list)
-		if(href_list["writeon"])
-			var/datum/software/soft = locate(href_list["writeon"])
-			WriteOn(soft)
-			if(mainframe)
-				mainframe.updateUsrDialog()
-
-		else if(href_list["remove"])
-			var/datum/software/soft = locate(href_list["remove"])
-			Remove(soft)
-			if(mainframe)
-				mainframe.updateUsrDialog()
-
 
 /obj/item/weapon/hardware/memory/hdd
 	total_memory = 50
@@ -159,7 +151,7 @@
 	icon_state = "datadisk0"
 	item_state = "card-id"
 	var/list/default_soft = list(
-	"/datum/software/app/medical_records"              , \
+	"/datum/software/app/medical_records"              ,\
 	)
 	var/protected = 0
 

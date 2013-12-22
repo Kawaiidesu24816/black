@@ -53,9 +53,6 @@
 	proc/GetIconName()
 		return display_icon
 
-	proc/Request(var/t)
-		return
-
 /datum/software/os/sos
 	name = "SOS"
 	size = 10
@@ -73,7 +70,6 @@
 				if("mainscreen")
 					t += "Welcome to Station Operation System (SOS)<BR>"
 					t += "<A href='?src=\ref[src];setstate=filemanager'>Launch filemanager</A><BR>"
-					t += "<A href='?src=\ref[src];setstate=databurner'>Launch databurner</A><BR>"
 					t += "------<BR>"
 					for(var/datum/software/app/app in mainframe.hdd.data)
 						t += "<A href='?src=\ref[src];runapp=\ref[app]'>[app.name]</A><BR>"
@@ -81,52 +77,42 @@
 					t += "<A href='?src=\ref[mainframe];turnoff=1'>Turn Off</A><BR>"
 					t += "<A href='?src=\ref[mainframe];BIOS=1'>Reboot</A><BR>"
 				if("filemanager")
-					t += "Welcome to SOS File Manager. <A href='?src=\ref[src];setstate=mainscreen'>Return to main menu</A><BR>"
+					var/rstate = mainframe.ReaderProblem()
+
+					t += "Welcome to SOS File Manager."// <A href='?src=\ref[src];setstate=mainscreen'>Return to main menu</A><BR>"
 					t += "You have [mainframe.hdd.Space()] memory.<BR>"
 					t += "Installed programms is:<BR>"
 					for(var/datum/software/os/soft in mainframe.hdd.data)
-						t += "\red[soft.name]<BR>"
+						t += "[soft.name]<BR>"
 					t += "------<BR>"
 					for(var/datum/software/app/soft in mainframe.hdd.data)
-						t += "<A href='?src=\ref[src];remove=\ref[soft]'>(R)</A>[soft.name]<BR>"
+						if(!rstate && !mainframe.reader.disk.Problem(soft))
+							t += "<A href='?src=\ref[mainframe];diskwriteon=\ref[soft]'>(C)</A>"
+						else
+							t += "(C)"
+						t += "<A href='?src=\ref[mainframe];hddremove=\ref[soft]'>(R)</A>"
+						t += "[soft.name]<BR>"
 					t += "------<BR>"
-					if(!mainframe.reader)
-						t += "\red Datadriver is not found.<BR>"
-					else
-						t += "Prepared to install<BR>"
-						if(mainframe.reader.disk)
-							for(var/datum/software/soft in mainframe.reader.disk.data)
-								var/state = mainframe.hdd.Problem(soft)
-								if(!state)
-									t += "\green <A href='?src=\ref[src];install=\ref[soft]'>[soft.name]</A>"
-								else if(state == 1)
-									t += "[soft.name] is already installed."
-								else if(state == 2)
-									t += "\red[soft.name] require more free space."
-								t += "<BR>"
-						else
-							t += "Datadriver is ready to read disk"
-				if("databurner")
-					t += "Welcome to SOS basic Data Burner. <A href='?src=\ref[src];setstate=mainscreen'>Return to main menu</A><BR>"
-					if(!mainframe.reader)
+
+					//Disk
+					if(rstate == 1)
 						t += "Datadriver is not found<BR>"
-					else
-						if(!mainframe.reader.disk)
-							t += "Please insert disk<BR>"
-						else
-							t += "Disk have [mainframe.reader.disk.Space()] of memory<BR>"
-							t += "Storaged data:<BR>"
-							t += "------<BR>"
-							var/obj/item/weapon/hardware/memory/storage = mainframe.reader.disk
-							for(var/datum/software/soft in storage.data)
-								t += "<A href='?src=\ref[storage];remove=\ref[soft]'>(R)</A>[soft.name]<BR>"
-							t += "------<BR>"
-							for(var/datum/software/soft in mainframe.hdd.data)
-								if(!mainframe.hdd.Problem(soft))
-									t += "<A href='?src=\ref[storage];writeon=\ref[soft]'>[soft.name]</A><BR>"
-								else
-									t += "[soft.name]<BR>"
-							t += "------<BR>"
+					else if(rstate == 2)
+						t += "Please insert disk<BR>"
+					else if(!rstate)
+						t += "Disk have [mainframe.reader.disk.Space()] memory<BR>"
+						t += "Files on disk<BR>"
+						for(var/datum/software/soft in mainframe.reader.disk.data)
+							if(!mainframe.hdd.Problem(soft))
+								t += "<A href='?src=\ref[mainframe];hddwriteon=\ref[soft]'>(C)</A>"
+							else
+								t += "(C)"
+							t += "<A href='?src=\ref[mainframe];diskremove=\ref[soft]'>(R)</A>"
+							t += "[soft.name]<BR>"
+						//	else if(state == 1)
+						//		t += "[soft.name] is already installed."
+						//	else if(state == 2)
+						//		t += "\red[soft.name] require more free space.<BR>"
 
 		return t + Footer()
 
@@ -141,13 +127,9 @@
 		else if(href_list["runapp"])
 			var/datum/software/app/app = locate(href_list["runapp"])
 			current_prog = app
+		else if(href_list["closeapp"])
+			current_prog = null
 			//app.Load(mainframe)
-		else if(href_list["install"])
-			var/datum/software/soft = locate(href_list["install"])
-			mainframe.hdd.WriteOn(soft)
-		else if(href_list["remove"])
-			var/datum/software/soft = locate(href_list["remove"])
-			mainframe.hdd.Remove(soft)
 		updateUsrDialog()
 
 	proc/Header()
@@ -175,8 +157,8 @@
 		if(mainframe.reader)
 			if(mainframe.reader.disk)
 				text += "<A href='?src=\ref[mainframe];ejectdisk=1'>Eject Disk</A><BR>"
-		if(current_prog)
-			text += "<A href='?src=\ref[current_prog];exit=1'>Exit to main menu</A><BR>"
+		if(current_prog || current_state != "mainscreen")
+			text += "<A href='?src=\ref[src];closeapp=1'>Exit to main menu</A><BR>"
 		text += "------<BR>"
 		for(var/i = 1; i <= 5; i++)
 			text += lastlogs[i] + "<BR>"
@@ -194,10 +176,6 @@
 			return current_prog.display_icon
 		return display_icon
 
-	Request(var/t)
-		switch(t)
-			if("exit")
-				current_prog = null
 	inFocus()
 		if(mainframe.sys && mainframe.sys == src)
 			return 1
@@ -207,17 +185,16 @@
 	var/list/required_access = list() //Not a req_one_access cause we have own auth sys
 
 	Topic(href, href_list)
-		. = 0
-		if(href_list["exit"])
-			mainframe.sys.Request("exit")
-			. = 1
-		updateUsrDialog()
 		return
 
 	inFocus()
 		if(mainframe.sys && istype(mainframe.sys, /datum/software/os/sos) && (mainframe.sys:current_prog == src))
 			return 1
 		return 0
+
+///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////Text Typer/////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 /datum/software/app/texttyper
 	name = "Text Typer"
@@ -226,15 +203,13 @@
 
 	Display(var/mob/user)
 		var/new_text = "Welcome to [name] 501.1217<BR>"
-		new_text += "<A href='?src=\ref[src];exit=1'>Exit to [mainframe.sys.name].</A>"
+		new_text += "<A href='?src=\ref[mainframe.sys];closeapp=1'>Exit to [mainframe.sys.name].</A>"
 		return new_text
 
 	Topic(href, href_list)
-		if(..(href, href_list)) return
 		updateUsrDialog()
-
 ///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////CREW MONITOR////////////////////////////////////
+///////////////////////////////Crew Monitor////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
 /datum/software/app/crew_monitor
@@ -306,16 +281,17 @@
 		return 1
 
 	Topic(href, href_list)
-		if(..(href, href_list)) return
 		if (mainframe.z > 6)
 			usr << "\red <b>Unable to establish a connection</b>: \black You're too far away from the station!"
 		updateUsrDialog()
 
 	Update()
 		//updateUsrDialog()
+
 /////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////Medical Records////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
+
 /datum/software/app/medical_records
 	name = "Medical records"
 	size = 10
@@ -399,7 +375,7 @@
 					t += "<B>Medical Record Lost!</B><BR>"
 					t += "<A href='?src=\ref[src];new=1'>New Record</A><BR><BR>"
 				t += "<A href='?src=\ref[src];print_p=1'>Print Record</A><BR>"
-				t += "<A href='?src=\ref[src];setstate=recordslist'>Back</A><BR>"
+				t += "<A href='?src=\ref[src];setstate=mainscreen'>Back</A><BR>"
 			if("viruses")
 				t += "<CENTER><B>Virus Database</B></CENTER>"
 				for (var/ID in virusDB)
@@ -663,7 +639,7 @@
 						else
 							//Foreach continue //goto(3334)
 					current_state = "mainscreen"
-
+		updateUsrDialog()
 //			else if (href_list["print_p"])
 //				if (!( src.printing ))
 //					src.printing = 1
