@@ -114,19 +114,25 @@
 		current_free_space = value
 		data = list()
 
-	proc/WriteOn(var/datum/software/soft)
+	proc/WriteOn(var/datum/software/soft, var/expand = 0)
 		soft = soft.Copy()
 		if(soft.size > current_free_space)
 			return 0
 		data.Add(soft)
-		current_free_space -= soft.size
+		if(expand)
+			total_memory += soft.size
+		else
+			current_free_space -= soft.size
 		return 1
 
-	proc/Remove(var/datum/software/soft)
+	proc/Remove(var/datum/software/soft, var/decrease = 0)
 		if(!(soft in data))
 			return 0
 		data.Remove(soft)
-		current_free_space = min(total_memory, current_free_space + soft.size)
+		if(decrease)
+			total_memory -= soft.size
+		else
+			current_free_space = min(total_memory, current_free_space + soft.size)
 		del soft
 
 	proc/Space()

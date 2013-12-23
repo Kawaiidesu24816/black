@@ -32,7 +32,7 @@
 		..()
 		InstallDefaultHardware()
 		for(var/soft in default_soft)
-			hdd.WriteOn(new soft())
+			hdd.WriteOn(new soft(), 1)
 
 	proc/InstallDefaultHardware() //For changing default hardware in childs
 		screen = new /obj/item/weapon/hardware/screen(src)
@@ -40,7 +40,7 @@
 		screen.Connect(src)
 
 		hdd = new /obj/item/weapon/hardware/memory/hdd(src)
-		hdd.ChangeMemorySize(100)
+		hdd.ChangeMemorySize(25)
 		hdd.Connect(src)
 
 		auth = new /obj/item/weapon/hardware/authentication(src)
@@ -123,7 +123,7 @@
 			if(hdd)
 				var/datum/software/soft = locate(href_list["hddwriteon"])
 				hdd.WriteOn(locate(soft))
-				soft.Load(src)
+				soft.Setup(src)
 
 		else if(href_list["hddremove"])
 			if(hdd)
@@ -157,7 +157,7 @@
 
 		if(newos && newos in hdd.data)
 			sys = newos
-			sys.Load(src)
+			sys.Setup(src)
 		else
 			sys = null
 			if(auth.logged)

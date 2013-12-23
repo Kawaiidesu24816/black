@@ -7,7 +7,7 @@
 	proc/Display(var/mob/user)
 		return ""
 
-	proc/Load(var/obj/machinery/newComputer/mainframe/M)
+	proc/Setup(var/obj/machinery/newComputer/mainframe/M)
 		mainframe = M
 
 	Topic(href, href_list)
@@ -40,10 +40,10 @@
 	Display(var/mob/user)
 		return ""
 
-	Load(var/obj/machinery/newComputer/mainframe/M)
+	Setup(var/obj/machinery/newComputer/mainframe/M)
 		..(M)
 		for(var/datum/software/app/soft in mainframe.hdd.data)
-			soft.Load(M)
+			soft.Setup(M)
 
 	Topic(href, href_list)
 
@@ -116,7 +116,7 @@
 
 		return t + Footer()
 
-	Load(var/obj/machinery/newComputer/mainframe/M)
+	Setup(var/obj/machinery/newComputer/mainframe/M)
 		..(M)
 		for(var/i = 1; i <= 5; i++)
 			lastlogs[i] = ""
@@ -129,7 +129,7 @@
 			current_prog = app
 		else if(href_list["closeapp"])
 			current_prog = null
-			//app.Load(mainframe)
+			//app.Setup(mainframe)
 		updateUsrDialog()
 
 	proc/Header()
