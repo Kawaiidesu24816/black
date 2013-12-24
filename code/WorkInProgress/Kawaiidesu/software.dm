@@ -16,9 +16,6 @@
 	proc/updateUsrDialog()
 		mainframe.updateUsrDialog()
 
-	proc/CheckAccess()
-		return 1
-
 	proc/Copy()
 		return new type()
 
@@ -27,6 +24,12 @@
 
 	proc/inFocus()
 		return 0
+
+	proc/OnStart()
+		return
+
+	proc/OnExit()
+		return
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////OS///////////////////////////////////////////////////
@@ -126,10 +129,12 @@
 			current_state = href_list["setstate"]
 		else if(href_list["runapp"])
 			var/datum/software/app/app = locate(href_list["runapp"])
-			current_prog = app
+			if(istype(src, app.required_os))
+				current_prog = app
+				current_prog.OnStart()
 		else if(href_list["closeapp"])
+			current_prog.OnClose()
 			current_prog = null
-			//app.Setup(mainframe)
 		updateUsrDialog()
 
 	proc/Header()
@@ -183,7 +188,7 @@
 
 /datum/software/app
 	var/list/required_access = list() //Not a req_one_access cause we have own auth sys
-
+	var/required_os = /datum/software/os/sos
 	Topic(href, href_list)
 		return
 
@@ -216,7 +221,6 @@
 	name = "Crew Monitor"
 	size = 15
 	display_icon = "crew"
-	var/list/tracked = list()
 
 	Display(var/mob/user)
 	//	if(!istype(user, /mob/living/silicon) && get_dist(src, user) > 1)
@@ -224,13 +228,13 @@
 	//		user << browse(null, "window=powcomp")
 	//		return
 	//	user.set_machine(src)
-		src.scan()
+		var/list/tracked = scan()
 		var/t = "<TT><B>Crew Monitoring</B><HR>"
 		t += "<BR><A href='?src=\ref[src];exit=1'>Exit to [mainframe.sys.name]</A>"
 		t += "<BR><A href='?src=\ref[src];update=1'>Refresh</A> "
 		t += "<table><tr><td width='40%'>Name</td><td width='20%'>Vitals</td><td width='40%'>Position</td></tr>"
 		var/list/logs = list()
-		for(var/obj/item/clothing/under/C in src.tracked)
+		for(var/obj/item/clothing/under/C in tracked)
 			var/log = ""
 			var/turf/pos = get_turf(C)
 			if((C) && (C.has_sensor) && (pos) && (pos.z == mainframe.z) && C.sensor_mode)
@@ -269,24 +273,40 @@
 
 
 	proc/scan()
+		var/list/tracked = list()
 		for(var/obj/item/clothing/under/C in world)
 			if((C.has_sensor) && (istype(C.loc, /mob/living/carbon/human)))
 				var/check = 0
-				for(var/O in src.tracked)
+				for(var/O in tracked)
 					if(O == C)
 						check = 1
 						break
 				if(!check)
-					src.tracked.Add(C)
-		return 1
+					tracked.Add(C)
+		return tracked
 
 	Topic(href, href_list)
 		if (mainframe.z > 6)
 			usr << "\red <b>Unable to establish a connection</b>: \black You're too far away from the station!"
 		updateUsrDialog()
 
-	Update()
-		//updateUsrDialog()
+/////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////Text Record//////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////
+
+/datum/software/app/textfile
+	name = "Text Record"
+	size = 1
+	display_icon = "request"
+	var/saved_text = ""
+
+	Display()
+		var/t = {"
+		<textarea rows='5'>
+		[saved_text]
+		</textarea>
+		"}
+		return t
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////Medical Records////////////////////////////////////

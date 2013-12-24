@@ -19,6 +19,7 @@
 	"/datum/software/app/texttyper"       ,\
 	"/datum/software/app/crew_monitor"    ,\
 	"/datum/software/app/medical_records" ,\
+	"/datum/software/app/textfile"        ,\
 	)
 
 	//Hardware
@@ -30,11 +31,9 @@
 
 	New()
 		..()
-		InstallDefaultHardware()
-		for(var/soft in default_soft)
-			hdd.WriteOn(new soft(), 1)
+		InstallDefault()
 
-	proc/InstallDefaultHardware() //For changing default hardware in childs
+	proc/InstallDefault() //For changing default hardware and soft in childs
 		screen = new /obj/item/weapon/hardware/screen(src)
 		screen.ChangeScreenSize(400,500)
 		screen.Connect(src)
@@ -48,6 +47,12 @@
 
 		reader = new /obj/item/weapon/hardware/datadriver(src)
 		reader.Connect(src)
+
+		hdd.WriteOn(new /datum/software/os/sos(), 1)
+		hdd.WriteOn(new /datum/software/app/texttyper(), 1)
+		hdd.WriteOn(new /datum/software/app/crew_monitor(), 1)
+		hdd.WriteOn(new /datum/software/app/medical_records(), 1)
+		hdd.WriteOn(new /datum/software/app/textfile(), 1)
 
 	proc/TurnOn()
 		if(stat & NOPOWER || use_power == 2)
