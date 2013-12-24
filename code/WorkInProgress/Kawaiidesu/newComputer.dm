@@ -35,7 +35,7 @@
 
 	proc/InstallDefault() //For changing default hardware and soft in childs
 		screen = new /obj/item/weapon/hardware/screen(src)
-		screen.ChangeScreenSize(400,500)
+		screen.ChangeScreenSize(600,500)
 		screen.Connect(src)
 
 		hdd = new /obj/item/weapon/hardware/memory/hdd(src)

@@ -23,7 +23,7 @@
 			return
 		width = w
 		heigth = h
-		size = "[width + 200]x[heigth]"
+		size = "[width]x[heigth]"
 
 ////////////////////DISKS AND IDs//////////////////////////
 

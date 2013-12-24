@@ -133,14 +133,14 @@
 				current_prog = app
 				current_prog.OnStart()
 		else if(href_list["closeapp"])
-			current_prog.OnClose()
+			current_prog.OnExit()
 			current_prog = null
 		updateUsrDialog()
 
 	proc/Header()
 		var/text = {"
 		<html><head><style type='text/css'>
-		.prog{width:[mainframe.screen.width]px;heigth:[mainframe.screen.heigth]px;float:left;}
+		.prog{width:[mainframe.screen.width - 200]px;heigth:[mainframe.screen.heigth]px;float:left;}
 		.sys{width:200px;height:[mainframe.screen.heigth]px;float:right;background:#ccc;position:absolute;top:0px;left:[mainframe.screen.width]px;}
 		</style></head><body><div class='prog'>
 		"}
