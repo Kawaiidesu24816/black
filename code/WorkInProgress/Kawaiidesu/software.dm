@@ -3,12 +3,23 @@
 	var/size = 0
 	var/obj/machinery/newComputer/mainframe/mainframe
 	var/display_icon = "command"
+	var/id = ""
+	var/list/datum/netconnection/connections = list()
+
 
 	proc/Display(var/mob/user)
 		return ""
 
 	proc/Setup(var/obj/machinery/newComputer/mainframe/M)
 		mainframe = M
+		GenerateID()
+
+	proc/GenerateID()
+		id = "[rand(1000,9999)]"
+		for(var/datum/software/soft in mainframe.hdd.data)
+			if(soft.id == id && soft != src)
+				GenerateID()
+				break
 
 	Topic(href, href_list)
 		return
@@ -31,6 +42,11 @@
 	proc/OnExit()
 		return
 
+	proc/Request(var/datum/connectdata/sender, var/list/data)
+		return
+
+	proc/GlobalAddress()
+		return new /datum/connectdata(mainframe.connector.address, id)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////OS///////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -45,8 +61,6 @@
 
 	Setup(var/obj/machinery/newComputer/mainframe/M)
 		..(M)
-		for(var/datum/software/app/soft in mainframe.hdd.data)
-			soft.Setup(M)
 
 	Topic(href, href_list)
 
@@ -73,6 +87,7 @@
 				if("mainscreen")
 					t += "Welcome to Station Operation System (SOS)<BR>"
 					t += "<A href='?src=\ref[src];setstate=filemanager'>Launch filemanager</A><BR>"
+					t += "<A href='?src=\ref[src];setstate=sharescreen'>Launch sharescreen</A><BR>"
 					t += "------<BR>"
 					for(var/datum/software/app/app in mainframe.hdd.data)
 						t += "<A href='?src=\ref[src];runapp=\ref[app]'>[app.name]</A><BR>"
@@ -116,6 +131,14 @@
 						//		t += "[soft.name] is already installed."
 						//	else if(state == 2)
 						//		t += "\red[soft.name] require more free space.<BR>"
+				if("sharescreen")
+					if(connections.len > 0)
+						for(var/datum/netconnection/con in connections)
+							t += "SHARED SCREEN! <BR>"
+							t += con.node.soft.Display(user)
+							break
+					else
+						t += "<A href='?src=\ref[src];testsignal=1'>TEST</A><BR>"
 
 		return t + Footer()
 
@@ -127,21 +150,33 @@
 	Topic(href, href_list)
 		if(href_list["setstate"])
 			current_state = href_list["setstate"]
+
 		else if(href_list["runapp"])
 			var/datum/software/app/app = locate(href_list["runapp"])
 			if(istype(src, app.required_os))
 				current_prog = app
 				current_prog.OnStart()
+
 		else if(href_list["closeapp"])
 			current_prog.OnExit()
 			current_prog = null
+
+		else if(href_list["testsignal"])
+			world << "REQUEST"
+			var/list/req = list()
+			world << "WAS"
+			req["connect_request"] = 1
+			world << "SENT"
+			mainframe.connector.SendSignal(new /datum/connectdata(), GlobalAddress(), req)
+
+
 		updateUsrDialog()
 
 	proc/Header()
 		var/text = {"
 		<html><head><style type='text/css'>
 		.prog{width:[mainframe.screen.width - 200]px;heigth:[mainframe.screen.heigth]px;float:left;}
-		.sys{width:200px;height:[mainframe.screen.heigth]px;float:right;background:#ccc;position:absolute;top:0px;left:[mainframe.screen.width]px;}
+		.sys{width:200px;height:[mainframe.screen.heigth]px;float:right;background:#ccc;position:absolute;top:0px;left:[mainframe.screen.width - 200]px;}
 		</style></head><body><div class='prog'>
 		"}
 		return text
@@ -185,6 +220,30 @@
 		if(mainframe.sys && mainframe.sys == src)
 			return 1
 		return 0
+
+	Request(var/datum/connectdata/sender, var/list/data)
+		world << "IM UNDER REQUEST"
+		if(data["connect_request"])
+			world << "IS CONNECT REQUEST"
+			var/datum/netconnection/connect = new /datum/netconnection()
+			connections.Add(connect)
+			connect.soft = src
+			connect.id = sender.id
+			connect.address = sender.address
+			var/list/ans = list()
+			ans["connect_approved"] = 1
+			ans["connect"] = "\ref[connect]"
+			mainframe.connector.SendSignal(sender, GlobalAddress(), ans)
+
+		else if(data["connect_approved"])
+			world << "CONNECTION APPROVED"
+			var/datum/netconnection/connect = new /datum/netconnection()
+			connections.Add(connect)
+			connect.soft = src
+			connect.id = sender.id
+			connect.address = sender.address
+			connect.node = locate(data["connect"])
+			connect.node.node = connect
 
 /datum/software/app
 	var/list/required_access = list() //Not a req_one_access cause we have own auth sys

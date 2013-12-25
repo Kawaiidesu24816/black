@@ -19,7 +19,7 @@
 	proc/ChangeScreenSize(var/w, var/h)
 		if(!isnum(w) || !isnum(h))
 			return
-		if(w < 100 || h < 100)
+		if(w < 300 || h < 300)
 			return
 		width = w
 		heigth = h
@@ -178,3 +178,46 @@
 		set src in view(1)
 		protected = !protected
 		usr << "You [protected ? "close" : "open"] disk to write"
+
+/////////////////////////WIRELESS CONNECTION/////////////////////////////
+
+/obj/item/weapon/hardware/wireless/connector
+	name = "Connector"
+	var/address = ""
+
+	New()
+		..()
+		GenerateAddress()
+
+	proc/GenerateAddress()
+		address = "[rand(1000, 9999)]-[rand(1000, 9999)]"
+		for(var/obj/item/weapon/hardware/wireless/connector/con in world)
+			if(con.address == address && con != src)
+				GenerateAddress()
+				break
+
+	proc/SendSignal(var/datum/connectdata/reciever, var/datum/connectdata/sender, var/list/data)
+		for(var/obj/item/weapon/hardware/wireless/connector/con in world)
+			if(con.address != sender.address)
+				con.RecieveSignal(reciever, sender, data)
+
+	proc/RecieveSignal(var/datum/connectdata/reciever, var/datum/connectdata/sender, var/list/data)
+		if(reciever.address && reciever.address != src.address)
+			return //Refuse Connection
+		if(!mainframe.on)
+			return
+		mainframe.RecieveSignal(reciever, sender, data)
+
+/datum/connectdata
+	var/address = ""
+	var/id = ""
+
+	New(var/a, var/i)
+		address = a
+		id = i
+
+/datum/netconnection
+	var/datum/netconnection/node
+	var/datum/software/soft
+	var/address
+	var/id

@@ -27,15 +27,18 @@
 	var/obj/item/weapon/hardware/memory/hdd/hdd
 	var/obj/item/weapon/hardware/authentication/auth
 	var/obj/item/weapon/hardware/datadriver/reader
+	var/obj/item/weapon/hardware/wireless/connector/connector
 
 
 	New()
 		..()
 		InstallDefault()
+		for(var/datum/software/soft in hdd.data)
+			soft.Setup(src)
 
 	proc/InstallDefault() //For changing default hardware and soft in childs
 		screen = new /obj/item/weapon/hardware/screen(src)
-		screen.ChangeScreenSize(600,500)
+		screen.ChangeScreenSize(500,500)
 		screen.Connect(src)
 
 		hdd = new /obj/item/weapon/hardware/memory/hdd(src)
@@ -47,6 +50,9 @@
 
 		reader = new /obj/item/weapon/hardware/datadriver(src)
 		reader.Connect(src)
+
+		connector = new /obj/item/weapon/hardware/wireless/connector(src)
+		connector.Connect(src)
 
 		hdd.WriteOn(new /datum/software/os/sos(), 1)
 		hdd.WriteOn(new /datum/software/app/texttyper(), 1)
@@ -108,21 +114,23 @@
 
 
 	Topic(href, href_list)
+		if(SecurityAlert())
+			return
+
+		//Functionality Processing
 		if(href_list["on-close"])
 			usr.unset_machine()
 			usr << browse(null, "window=mainframe")
 
 		else if(href_list["turnoff"])
 			TurnOff()
-			return
 
 		else if(href_list["BIOS"])
 			LaunchOS(null)
 
 		else if(href_list["OS"])
 			var/datum/software/os = locate(href_list["OS"])
-			if(!os || !(os in hdd.data)) return
-			LaunchOS(os)
+			if(os && os in hdd.data) LaunchOS(os)
 
 		else if(href_list["hddwriteon"])
 			if(hdd)
@@ -188,6 +196,24 @@
 		if(!reader.disk)
 			return 2
 		return 0
+
+	proc/SecurityAlert()
+		if(!in_range(src, usr) && !istype(usr, /mob/living/silicon))
+			world << "SECURITY ALERT!"
+			return 1
+		return 0
+
+	proc/RecieveSignal(var/datum/connectdata/reciever, var/datum/connectdata/sender, var/list/data)
+		if(!on) return
+		if(!hdd) return
+		world << "CATCH 'EM"
+		if(!reciever.id)
+			for(var/datum/software/soft in hdd.data)
+				soft.Request(sender, data)
+		else
+			for(var/datum/software/soft in hdd.data)
+				if(reciever.id == soft.id)
+					soft.Request(sender, data)
 
 	update_icon()
 		if(stat & NOPOWER || !on)
