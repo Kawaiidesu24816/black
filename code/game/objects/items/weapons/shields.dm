@@ -43,8 +43,8 @@
 	throw_speed = 1
 	throw_range = 2
 	w_class = 4.0
-	g_amt = 7500
-	m_amt = 1000
+	g_amt = 8000
+	m_amt = 1500
 	origin_tech = "materials=2"
 	attack_verb = list("shoved", "bashed")
 	var/cooldown = 0 //shield bash cooldown. based on world.time
@@ -60,11 +60,18 @@
 				cooldown = world.time
 		if(istype(W, /obj/item/weapon/gun/))
 			if(cooldown < world.time - 25)
-				user.visible_message("<span class='warning'>[user] hits [W] on [src]!</span>")
+				user.visible_message("<span class='warning'>[user] bangs [src] with [W]!</span>")
 				playsound(user.loc, 'sound/effects/shieldbashmetal2.ogg', 50, 1)
 				cooldown = world.time
 		else
 			..()
+
+/obj/item/weapon/shield/metal/green
+	name = "metal shield"
+	desc = "A shield adept at blocking blunt objects from connecting with the torso of the shield wielder. This one comes in green."
+	icon = 'icons/obj/weapons.dmi'
+	icon_state = "metalgreen"
+
 
 /obj/item/weapon/shield/riot/roman
 	name = "roman shield"
