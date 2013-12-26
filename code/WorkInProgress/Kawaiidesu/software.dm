@@ -42,11 +42,12 @@
 	proc/OnExit()
 		return
 
+	proc/GlobalAddress()
+		return new /datum/connectdata(mainframe.connector.address, id)
+
 	proc/Request(var/datum/connectdata/sender, var/list/data)
 		return
 
-	proc/GlobalAddress()
-		return new /datum/connectdata(mainframe.connector.address, id)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////OS///////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -87,7 +88,6 @@
 				if("mainscreen")
 					t += "Welcome to Station Operation System (SOS)<BR>"
 					t += "<A href='?src=\ref[src];setstate=filemanager'>Launch filemanager</A><BR>"
-					t += "<A href='?src=\ref[src];setstate=sharescreen'>Launch sharescreen</A><BR>"
 					t += "------<BR>"
 					for(var/datum/software/app/app in mainframe.hdd.data)
 						t += "<A href='?src=\ref[src];runapp=\ref[app]'>[app.name]</A><BR>"
@@ -127,18 +127,14 @@
 								t += "(C)"
 							t += "<A href='?src=\ref[mainframe];diskremove=\ref[soft]'>(R)</A>"
 							t += "[soft.name]<BR>"
-						//	else if(state == 1)
-						//		t += "[soft.name] is already installed."
-						//	else if(state == 2)
-						//		t += "\red[soft.name] require more free space.<BR>"
-				if("sharescreen")
-					if(connections.len > 0)
-						for(var/datum/netconnection/con in connections)
-							t += "SHARED SCREEN! <BR>"
-							t += con.node.soft.Display(user)
-							break
-					else
-						t += "<A href='?src=\ref[src];testsignal=1'>TEST</A><BR>"
+				//if("sharescreen") MADNESS! NEVER UNCOMMENT THAT!
+				//	if(connections.len > 0)
+				//		for(var/datum/netconnection/con in connections)
+				//			t += "SHARED SCREEN! <BR>"
+				//			t += con.node.soft.Display(user)
+				//			break
+				//	else
+				//		t += "<A href='?src=\ref[src];testsignal=1'>TEST</A><BR>"
 
 		return t + Footer()
 
@@ -156,19 +152,12 @@
 			if(istype(src, app.required_os))
 				current_prog = app
 				current_prog.OnStart()
+				mainframe.update_icon()
 
 		else if(href_list["closeapp"])
 			current_prog.OnExit()
 			current_prog = null
-
-		else if(href_list["testsignal"])
-			world << "REQUEST"
-			var/list/req = list()
-			world << "WAS"
-			req["connect_request"] = 1
-			world << "SENT"
-			mainframe.connector.SendSignal(new /datum/connectdata(), GlobalAddress(), req)
-
+			mainframe.update_icon()
 
 		updateUsrDialog()
 
@@ -222,28 +211,7 @@
 		return 0
 
 	Request(var/datum/connectdata/sender, var/list/data)
-		world << "IM UNDER REQUEST"
-		if(data["connect_request"])
-			world << "IS CONNECT REQUEST"
-			var/datum/netconnection/connect = new /datum/netconnection()
-			connections.Add(connect)
-			connect.soft = src
-			connect.id = sender.id
-			connect.address = sender.address
-			var/list/ans = list()
-			ans["connect_approved"] = 1
-			ans["connect"] = "\ref[connect]"
-			mainframe.connector.SendSignal(sender, GlobalAddress(), ans)
-
-		else if(data["connect_approved"])
-			world << "CONNECTION APPROVED"
-			var/datum/netconnection/connect = new /datum/netconnection()
-			connections.Add(connect)
-			connect.soft = src
-			connect.id = sender.id
-			connect.address = sender.address
-			connect.node = locate(data["connect"])
-			connect.node.node = connect
+		..()
 
 /datum/software/app
 	var/list/required_access = list() //Not a req_one_access cause we have own auth sys
@@ -272,6 +240,7 @@
 
 	Topic(href, href_list)
 		updateUsrDialog()
+
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////Crew Monitor////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -366,6 +335,69 @@
 		</textarea>
 		"}
 		return t
+
+	proc/SaveText(var/t)
+		saved_text = html_decode(sanitize(saved_text))
+
+	proc/GetText()
+		return html_encode(saved_text)
+
+
+/////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////Chat//////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////
+/datum/software/app/chat
+	name = "Station Chat"
+	size = 5
+	display_icon = "solar"
+	var/saved_text = ""
+
+	OnStart()
+		var/list/req = list()
+
+		req = list()
+		req["connect_request"] = 1
+		req["soft_type"] = type
+		mainframe.connector.SendSignal(new /datum/connectdata(), GlobalAddress(), req)
+
+	Display()
+		var/t = ""
+		for(var/datum/netconnection/connect in connections)
+			t += "[connect.soft.name] ([connect.address],[connect.id])<BR>"
+		return t
+
+	Request(var/datum/connectdata/sender, var/list/data)
+		if(data["connect_request"])
+			if(!data["soft_type"] || data["soft_type"] != src.type)
+				return
+			var/datum/netconnection/connect = new /datum/netconnection()
+			connect.soft = src
+			connect.id = sender.id
+			connect.address = sender.address
+			var/list/ans = list()
+			ans["connect_approved"] = 1
+			ans["connect"] = "\ref[connect]"
+
+			connections.Add(connect)
+			mainframe.connector.SendSignal(sender, GlobalAddress(), ans)
+
+		else if(data["connect_approved"])
+			var/datum/netconnection/connect = new /datum/netconnection()
+			connections.Add(connect)
+			connect.soft = src
+			connect.id = sender.id
+			connect.address = sender.address
+			connect.node = locate(data["connect"])
+			connect.node.node = connect
+			updateUsrDialog()
+
+		else if(data["break_connect"])
+			if(data["connect"])
+				var/datum/netconnection/connect = locate(data["connect"])
+				if(connect in connections)
+					connections.Remove(connect)
+					connect.Clear()
+
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////Medical Records////////////////////////////////////

@@ -59,6 +59,7 @@
 		hdd.WriteOn(new /datum/software/app/crew_monitor(), 1)
 		hdd.WriteOn(new /datum/software/app/medical_records(), 1)
 		hdd.WriteOn(new /datum/software/app/textfile(), 1)
+		hdd.WriteOn(new /datum/software/app/chat(), 1)
 
 	proc/TurnOn()
 		if(stat & NOPOWER || use_power == 2)
@@ -76,6 +77,11 @@
 		LaunchOS(null)
 
 	attack_hand(var/mob/user as mob)
+		if(!in_range(src, usr) && !istype(usr, /mob/living/silicon))
+			world << "SECURITY ALERT!"
+			usr.unset_machine()
+			usr << browse(null, "window=mainframe")
+			return
 		if(!on)
 			TurnOn()
 			return
@@ -90,7 +96,6 @@
 		user.set_machine(src)
 		user << browse(t, "window=mainframe;size=[screen.size];can_resize=0")
 		onclose(user,"mainframe")
-		update_icon()
 
 	attack_ai(var/mob/user as mob)
 		world << "AI interact doesn't work right now"
@@ -114,9 +119,6 @@
 
 
 	Topic(href, href_list)
-		if(SecurityAlert())
-			return
-
 		//Functionality Processing
 		if(href_list["on-close"])
 			usr.unset_machine()
@@ -175,6 +177,7 @@
 			sys = null
 			if(auth.logged)
 				auth.Logout(0)
+		update_icon()
 
 	proc/AccessProblem(var/list/access)
 		if(!auth)
@@ -197,16 +200,10 @@
 			return 2
 		return 0
 
-	proc/SecurityAlert()
-		if(!in_range(src, usr) && !istype(usr, /mob/living/silicon))
-			world << "SECURITY ALERT!"
-			return 1
-		return 0
-
 	proc/RecieveSignal(var/datum/connectdata/reciever, var/datum/connectdata/sender, var/list/data)
 		if(!on) return
 		if(!hdd) return
-		world << "CATCH 'EM"
+		if(!sys) return
 		if(!reciever.id)
 			for(var/datum/software/soft in hdd.data)
 				soft.Request(sender, data)

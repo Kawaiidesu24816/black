@@ -221,3 +221,6 @@
 	var/datum/software/soft
 	var/address
 	var/id
+
+	proc/Clear()
+		del src
