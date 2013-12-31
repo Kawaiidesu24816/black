@@ -4,8 +4,6 @@
 	var/obj/machinery/newComputer/mainframe/mainframe
 	var/display_icon = "command"
 	var/id = ""
-	var/list/datum/netconnection/connections = list()
-
 
 	proc/Display(var/mob/user)
 		return ""
@@ -47,6 +45,9 @@
 
 	proc/Request(var/datum/connectdata/sender, var/list/data)
 		return
+
+	proc/CanStart()
+		return 1
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////OS///////////////////////////////////////////////////
@@ -149,7 +150,7 @@
 
 		else if(href_list["runapp"])
 			var/datum/software/app/app = locate(href_list["runapp"])
-			if(istype(src, app.required_os))
+			if(istype(src, app.required_os) && app.CanStart())
 				current_prog = app
 				current_prog.OnStart()
 				mainframe.update_icon()
@@ -161,12 +162,24 @@
 
 		updateUsrDialog()
 
+
+
+		//<script language="javascript">
+		//function send(type, value)
+		//{
+		//	window.location="byond://?src=\ref[src]&"type"="value";
+		//}
+		//</script>
+
 	proc/Header()
 		var/text = {"
-		<html><head><style type='text/css'>
+		<html><head>
+		<style type='text/css'>
 		.prog{width:[mainframe.screen.width - 200]px;heigth:[mainframe.screen.heigth]px;float:left;}
 		.sys{width:200px;height:[mainframe.screen.heigth]px;float:right;background:#ccc;position:absolute;top:0px;left:[mainframe.screen.width - 200]px;}
-		</style></head><body><div class='prog'>
+		</style>
+
+		</head><body><div class='prog'>
 		"}
 		return text
 
@@ -351,53 +364,54 @@
 	size = 5
 	display_icon = "solar"
 	var/saved_text = ""
+	var/datum/address/host = null
+
 
 	OnStart()
 		var/list/req = list()
-
-		req = list()
-		req["connect_request"] = 1
+		var/datum/connectdata/self = GlobalAddress()
+		req["message"] = self.ToString() + " connected"
+		req["user"] = "System"
 		req["soft_type"] = type
-		mainframe.connector.SendSignal(new /datum/connectdata(), GlobalAddress(), req)
+		mainframe.connector.SendSignal(null, self, req)
 
 	Display()
-		var/t = ""
-		for(var/datum/netconnection/connect in connections)
-			t += "[connect.soft.name] ([connect.address],[connect.id])<BR>"
+		var/t = "<textarea rows='10' cols='[round((mainframe.screen.width - 200) / 9)]' readonly>" + saved_text + "</textarea>"
+		t += {"
+		<form name="ChatInput" action="byond://" method="get">
+			<input type="hidden" name="src" value="\ref[src]" />
+			<input type="text" name="new_message" size="15" />
+			<input type="submit" value="Send" style="align:bottom;width=[mainframe.screen.x - 200]px;"/>
+		</form>
+		"}
 		return t
 
 	Request(var/datum/connectdata/sender, var/list/data)
-		if(data["connect_request"])
-			if(!data["soft_type"] || data["soft_type"] != src.type)
-				return
-			var/datum/netconnection/connect = new /datum/netconnection()
-			connect.soft = src
-			connect.id = sender.id
-			connect.address = sender.address
-			var/list/ans = list()
-			ans["connect_approved"] = 1
-			ans["connect"] = "\ref[connect]"
+		if(data["message"] && data["user"])
+			if(data["soft_type"] != src.type) return
+			if(data["user"] == "unknown") return
+			NewMessage(data["message"], data["user"])
 
-			connections.Add(connect)
-			mainframe.connector.SendSignal(sender, GlobalAddress(), ans)
+	Topic(href, href_list)
+		if(href_list["new_message"])
+			if(mainframe.auth.username == "unknown")
+				NewMessage("Access denied. Please login", "System")
+			else
+				NewMessage(href_list["new_message"], mainframe.auth.username)
+				var/list/req = list()
+				req["message"] = href_list["new_message"]
+				req["soft_type"] = type
+				req["user"] = mainframe.auth.username
+				mainframe.connector.SendSignal(null, GlobalAddress(), req)
+		updateUsrDialog()
 
-		else if(data["connect_approved"])
-			var/datum/netconnection/connect = new /datum/netconnection()
-			connections.Add(connect)
-			connect.soft = src
-			connect.id = sender.id
-			connect.address = sender.address
-			connect.node = locate(data["connect"])
-			connect.node.node = connect
-			updateUsrDialog()
+	CanStart()
+		if(!mainframe.auth || !mainframe.auth.logged || !mainframe.connector)
+			return 0
+		return 1
 
-		else if(data["break_connect"])
-			if(data["connect"])
-				var/datum/netconnection/connect = locate(data["connect"])
-				if(connect in connections)
-					connections.Remove(connect)
-					connect.Clear()
-
+	proc/NewMessage(var/text, var/user)
+		saved_text += "\n<" + user + "> " + text
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////Medical Records////////////////////////////////////

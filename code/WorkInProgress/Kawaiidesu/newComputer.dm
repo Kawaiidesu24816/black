@@ -14,14 +14,6 @@
 	var/on = 0
 	var/datum/software/os/sys = null
 
-	var/list/default_soft = list(
-	"/datum/software/os/sos"              ,\
-	"/datum/software/app/texttyper"       ,\
-	"/datum/software/app/crew_monitor"    ,\
-	"/datum/software/app/medical_records" ,\
-	"/datum/software/app/textfile"        ,\
-	)
-
 	//Hardware
 	var/obj/item/weapon/hardware/screen/screen
 	var/obj/item/weapon/hardware/memory/hdd/hdd
@@ -33,8 +25,6 @@
 	New()
 		..()
 		InstallDefault()
-		for(var/datum/software/soft in hdd.data)
-			soft.Setup(src)
 
 	proc/InstallDefault() //For changing default hardware and soft in childs
 		screen = new /obj/item/weapon/hardware/screen(src)
@@ -54,12 +44,15 @@
 		connector = new /obj/item/weapon/hardware/wireless/connector(src)
 		connector.Connect(src)
 
-		hdd.WriteOn(new /datum/software/os/sos(), 1)
-		hdd.WriteOn(new /datum/software/app/texttyper(), 1)
-		hdd.WriteOn(new /datum/software/app/crew_monitor(), 1)
-		hdd.WriteOn(new /datum/software/app/medical_records(), 1)
-		hdd.WriteOn(new /datum/software/app/textfile(), 1)
-		hdd.WriteOn(new /datum/software/app/chat(), 1)
+		hdd.WriteOn(new /datum/software/os/sos()              ,1)
+		hdd.WriteOn(new /datum/software/app/texttyper()       ,1)
+		hdd.WriteOn(new /datum/software/app/crew_monitor()    ,1)
+		hdd.WriteOn(new /datum/software/app/medical_records() ,1)
+		hdd.WriteOn(new /datum/software/app/textfile()        ,1)
+		hdd.WriteOn(new /datum/software/app/chat()            ,1)
+
+		for(var/datum/software/soft in hdd.data)
+			soft.Setup(src)
 
 	proc/TurnOn()
 		if(stat & NOPOWER || use_power == 2)
@@ -77,8 +70,7 @@
 		LaunchOS(null)
 
 	attack_hand(var/mob/user as mob)
-		if(!in_range(src, usr) && !istype(usr, /mob/living/silicon))
-			world << "SECURITY ALERT!"
+		if(SecurityAlert())
 			usr.unset_machine()
 			usr << browse(null, "window=mainframe")
 			return
@@ -227,3 +219,13 @@
 		if(on && sys)
 			for(var/datum/software/soft in hdd.data)
 				soft.Update()
+
+	updateUsrDialog()
+		if(!SecurityAlert())
+			..()
+
+	proc/SecurityAlert() //Protection against non-fair using
+		if(!in_range(src, usr) && !istype(usr, /mob/living/silicon))
+			world << "Security Alert in ([x], [y], [z]). Try to avoid any message like this."
+			return 1
+		return 0

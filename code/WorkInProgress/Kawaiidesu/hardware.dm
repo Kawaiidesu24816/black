@@ -30,8 +30,8 @@
 /obj/item/weapon/hardware/authentication
 	var/obj/item/weapon/card/id/id
 	var/logged = 0
-	var/username
-	var/assignment
+	var/username = "unknown"
+	var/assignment = "unassigned"
 	var/list/access = list()
 
 	proc/Login(var/inLog = 1)
@@ -49,8 +49,8 @@
 	proc/Logout(var/inLog = 1)
 		if(!logged)
 			world << "Trying to logout when not logged at [mainframe.x], [mainframe.y], [mainframe.z]"
-		username = ""
-		assignment = ""
+		username = "unknown"
+		assignment = "unassigned"
 		access = list()
 		logged = 0
 		if(inLog && mainframe.sys)
@@ -197,6 +197,8 @@
 				break
 
 	proc/SendSignal(var/datum/connectdata/reciever, var/datum/connectdata/sender, var/list/data)
+		if(reciever == null)
+			reciever = new /datum/connectdata()
 		for(var/obj/item/weapon/hardware/wireless/connector/con in world)
 			if(con.address != sender.address)
 				con.RecieveSignal(reciever, sender, data)
@@ -215,6 +217,9 @@
 	New(var/a, var/i)
 		address = a
 		id = i
+
+	proc/ToString()
+		return address + ":" + id
 
 /datum/netconnection
 	var/datum/netconnection/node
