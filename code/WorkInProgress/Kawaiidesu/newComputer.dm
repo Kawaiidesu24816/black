@@ -44,12 +44,9 @@
 		connector = new /obj/item/weapon/hardware/wireless/connector(src)
 		connector.Connect(src)
 
-		hdd.WriteOn(new /datum/software/os/sos()              ,1)
-		hdd.WriteOn(new /datum/software/app/texttyper()       ,1)
-		hdd.WriteOn(new /datum/software/app/crew_monitor()    ,1)
-		hdd.WriteOn(new /datum/software/app/medical_records() ,1)
-		hdd.WriteOn(new /datum/software/app/textfile()        ,1)
-		hdd.WriteOn(new /datum/software/app/chat()            ,1)
+		//It is more easy way than use list of strings of ways of default soft
+		hdd.WriteOn(new /datum/software/os/sos(), 1)
+		hdd.WriteOn(new /datum/software/app/textfile(), 1)
 
 		for(var/datum/software/soft in hdd.data)
 			soft.Setup(src)
@@ -157,6 +154,7 @@
 
 		else if(sys)
 			sys.Topic(href, href_list)
+			return //Update will be made in soft Topic()
 
 		updateUsrDialog()
 
@@ -171,6 +169,7 @@
 				auth.Logout(0)
 		update_icon()
 
+	//Hardware problems
 	proc/AccessProblem(var/list/access)
 		if(!auth)
 			return 1
@@ -192,6 +191,12 @@
 			return 2
 		return 0
 
+	proc/NetProblem()
+		if(!connector)
+			return 1
+		return 0
+
+	//Net stuff
 	proc/RecieveSignal(var/datum/connectdata/reciever, var/datum/connectdata/sender, var/list/data)
 		if(!on) return
 		if(!hdd) return
@@ -204,7 +209,8 @@
 				if(reciever.id == soft.id)
 					soft.Request(sender, data)
 
-	update_icon()
+
+	update_icon()//Change to overlays when sprites will be ready
 		if(stat & NOPOWER || !on)
 			icon_state = "command[screen.broken ? "b" : "0"]"
 		else if(sys)

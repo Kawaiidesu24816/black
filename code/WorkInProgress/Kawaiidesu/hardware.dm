@@ -35,6 +35,7 @@
 	var/list/access = list()
 
 	proc/Login(var/inLog = 1)
+		if(!mainframe) return
 		if(logged)
 			world << "Trying to login when logged at [mainframe.x], [mainframe.y], [mainframe.z]"
 		if(!id)
@@ -43,16 +44,23 @@
 		assignment = id.assignment
 		access = id.access
 		logged = 1
+		if(mainframe.hdd)
+			for(var/datum/software/soft in mainframe.hdd.data)
+				soft.LoginChange()
 		if(inLog && mainframe.sys)
 			mainframe.sys.AddLogs("Logged as [username]")
 
 	proc/Logout(var/inLog = 1)
+		if(!mainframe) return
 		if(!logged)
 			world << "Trying to logout when not logged at [mainframe.x], [mainframe.y], [mainframe.z]"
 		username = "unknown"
 		assignment = "unassigned"
 		access = list()
 		logged = 0
+		if(mainframe.hdd)
+			for(var/datum/software/soft in mainframe.hdd.data)
+				soft.LoginChange()
 		if(inLog && mainframe.sys)
 			mainframe.sys.AddLogs("Logged out")
 
@@ -73,12 +81,10 @@
 		id = null
 
 	proc/CheckAccess(var/list/input)
-		world << input.len
-		world << "----"
-		world << access.len
+		if(input.len <= 0)
+			return 1
 		for(var/req in input)
 			if(req in access)
-				world << "[req] is right"
 				return 1
 		return 0
 
