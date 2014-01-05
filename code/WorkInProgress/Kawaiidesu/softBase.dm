@@ -89,7 +89,10 @@
 
 /datum/software/app
 	var/list/required_access = list() //Not a req_one_access cause we have own auth sys
-	var/required_os = /datum/software/os/sos
+	var/required_sys = /datum/software/os/sos
+
+	proc/Exit()
+		mainframe.sys.Close()
 
 /datum/software/os
 	name = "Default OS"
@@ -97,14 +100,14 @@
 	display_icon = "ai-fixer"
 	var/list/logs = list()
 
-	Display(var/mob/user)
-		return ""
-
-	Setup(var/obj/machinery/newComputer/mainframe/M)
-		..(M)
-
 	proc/AddLogs(var/text)
 		logs += text
 
 	proc/GetIconName()
 		return display_icon
+
+	proc/Run(var/datum/software/soft)
+		return
+
+	proc/Close()
+		return

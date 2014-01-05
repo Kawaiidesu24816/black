@@ -75,16 +75,12 @@
 			current_state = href_list["setstate"]
 
 		else if(href_list["runapp"])
-			var/datum/software/app/app = locate(href_list["runapp"])
-			if(istype(src, app.required_os) && !app.Requirements())
-				current_prog = app
-				current_prog.OnStart()
-				mainframe.update_icon()
+			var/s = locate(href_list["runapp"])
+			if(istype(s, /datum/software/app))
+				Run(s)
 
 		else if(href_list["closeapp"])
-			current_prog.OnExit()
-			current_prog = null
-			mainframe.update_icon()
+			Close()
 
 		updateUsrDialog()
 
@@ -146,3 +142,17 @@
 
 	Request(var/datum/connectdata/sender, var/list/data)
 		..()
+
+	Run(var/datum/software/app/soft)
+		Close()
+		if(soft.Requirements()) return
+		if(soft.required_sys && !soft.required_sys == src.type) return
+		current_prog = soft
+		current_prog.OnStart()
+		mainframe.update_icon()
+
+	Close()
+		if(!current_prog) return
+		current_prog.OnExit()
+		current_prog = null
+		mainframe.update_icon()
