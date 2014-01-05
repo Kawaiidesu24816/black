@@ -17,7 +17,7 @@
 					t += "<A href='?src=\ref[src];setstate=filemanager'>Launch filemanager</A><BR>"
 					t += "------<BR>"
 					for(var/datum/software/app/app in mainframe.hdd.data)
-						t += "<A href='?src=\ref[src];runapp=\ref[app]'>[app.name]</A><BR>"
+						t += "<A href='?src=\ref[src];runapp=\ref[app]'>[app.GetName()]</A><BR>"
 					t += "------<BR>"
 					t += "<A href='?src=\ref[mainframe];turnoff=1'>Turn Off</A><BR>"
 					t += "<A href='?src=\ref[mainframe];BIOS=1'>Reboot</A><BR>"
@@ -28,7 +28,7 @@
 					t += "You have [mainframe.hdd.Space()] memory.<BR>"
 					t += "Installed programms is:<BR>"
 					for(var/datum/software/os/soft in mainframe.hdd.data)
-						t += "[soft.name]<BR>"
+						t += "[soft.GetName()]<BR>"
 					t += "------<BR>"
 					for(var/datum/software/app/soft in mainframe.hdd.data)
 						if(!rstate && !mainframe.reader.disk.Problem(soft))
@@ -36,7 +36,7 @@
 						else
 							t += "(C)"
 						t += "<A href='?src=\ref[mainframe];hddremove=\ref[soft]'>(R)</A>"
-						t += "[soft.name]<BR>"
+						t += "[soft.GetName()]<BR>"
 					t += "------<BR>"
 
 					//Disk

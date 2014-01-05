@@ -20,6 +20,7 @@
 		return
 
 	//Create new instance of soft
+	//Return: new same type object
 	proc/Copy()
 		return new type()
 
@@ -28,8 +29,12 @@
 		return
 
 	//Check of required hardware before launch
+	//Return: 0 if ready or string of problem
 	proc/Requirements()
 		return 0
+
+	proc/GetName()
+		return name
 
 	//Events
 	proc/OnStart()
@@ -48,8 +53,6 @@
 
 	//Called by computer so we DON'T know we have or not any hardware
 	proc/HardwareChange()
-		if(mainframe.MemoryProblem())
-			Disconnect()
 		return
 
 	///////////////////////////////////////////
@@ -77,13 +80,16 @@
 		mainframe = null
 		id = null
 
+	proc/Connected()
+		if(mainframe)
+			return 1
+		return 0
+
 	///////////////////////////////////////////
 
 /datum/software/app
 	var/list/required_access = list() //Not a req_one_access cause we have own auth sys
 	var/required_os = /datum/software/os/sos
-	Topic(href, href_list)
-		return
 
 /datum/software/os
 	name = "Default OS"
@@ -96,8 +102,6 @@
 
 	Setup(var/obj/machinery/newComputer/mainframe/M)
 		..(M)
-
-	Topic(href, href_list)
 
 	proc/AddLogs(var/text)
 		logs += text

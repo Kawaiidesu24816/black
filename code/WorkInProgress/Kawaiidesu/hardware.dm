@@ -1,6 +1,8 @@
 /obj/item/weapon/hardware
 	name = "Default hardware"
+	icon = 'icons/obj/newComp.dmi'
 	var/broken = 0
+	var/hardware_type = "nothing"
 	var/obj/machinery/newComputer/mainframe/mainframe
 
 	var/temperature = T20C
@@ -28,11 +30,23 @@
 ////////////////////DISKS AND IDs//////////////////////////
 
 /obj/item/weapon/hardware/authentication
+	name = "Auth module"
+	hardware_type = "auth"
+
 	var/obj/item/weapon/card/id/id
 	var/logged = 0
 	var/username = "unknown"
 	var/assignment = "unassigned"
 	var/list/access = list()
+
+	Disconnect()
+		logged = 0
+		username = "unknown"
+		assignment = "unassigned"
+		if(mainframe && mainframe.hdd)
+			for(var/datum/software/soft in mainframe.hdd.data)
+				soft.LoginChange()
+		..()
 
 	proc/Login(var/inLog = 1)
 		if(!mainframe) return
@@ -65,6 +79,7 @@
 			mainframe.sys.AddLogs("Logged out")
 
 	proc/Insert(var/obj/item/weapon/card/id/insertedID)
+		//Separated checks is important cause player can insert an ID when auth module is removed
 		if(id)
 			usr << "\red You can't insert your ID into slot. Something prevent it."
 			return
@@ -89,6 +104,9 @@
 		return 0
 
 /obj/item/weapon/hardware/datadriver
+	name = "Data reader"
+	icon_state = "datareader"
+	hardware_type = "reader"
 	var/obj/item/weapon/hardware/memory/disk/disk
 
 	proc/Insert(var/obj/item/weapon/hardware/memory/disk/d)
@@ -154,13 +172,25 @@
 
 
 /obj/item/weapon/hardware/memory/hdd
+	name = "Harddrive"
+	icon_state = "harddrive"
+	hardware_type = "hdd"
 	total_memory = 50
 	current_free_space = 50
 
+	Connect(var/obj/machinery/newComputer/mainframe/m)
+		..()
+		for(var/datum/software/soft in data)
+			soft.Setup(m)
+
+	Disconnect()
+		..()
+		for(var/datum/software/soft in data)
+			soft.Disconnect()
+
 
 /obj/item/weapon/hardware/memory/disk
-	icon = 'icons/obj/cloning.dmi'
-	icon_state = "datadisk0"
+	icon_state = "disk0"
 	item_state = "card-id"
 	var/list/default_soft = list(
 	"/datum/software/app/medical_records"              ,\
@@ -169,6 +199,7 @@
 
 	New()
 		..()
+		icon_state = "disk[rand(0,1)]"
 		for(var/soft in default_soft)
 			WriteOn(new soft())
 
@@ -189,11 +220,16 @@
 
 /obj/item/weapon/hardware/wireless/connector
 	name = "Connector"
+	hardware_type = "connector"
 	var/address = ""
 
-	New()
+	Connect(var/obj/machinery/newComputer/mainframe/m)
 		..()
 		GenerateAddress()
+
+	Disconnect()
+		..()
+		address = "Local"
 
 	proc/GenerateAddress()
 		address = "[rand(1000, 9999)]-[rand(1000, 9999)]"
@@ -226,12 +262,3 @@
 
 	proc/ToString()
 		return address + ":" + id
-
-/datum/netconnection
-	var/datum/netconnection/node
-	var/datum/software/soft
-	var/address
-	var/id
-
-	proc/Clear()
-		del src

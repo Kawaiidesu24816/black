@@ -1,3 +1,5 @@
+//TO DO: DO SOMETHING WITH INSTALLING/REMOVING HARDWARE
+
 /obj/machinery/newComputer/mainframe
 	name = "Computer"
 	desc = "Meow"
@@ -12,6 +14,7 @@
 	power_channel = 0
 
 	var/on = 0
+	var/opened = 0
 	var/datum/software/os/sys = null
 
 	//Hardware
@@ -71,20 +74,38 @@
 			usr.unset_machine()
 			usr << browse(null, "window=mainframe")
 			return
+		if(opened)
+			var/t = ""
+			if(hdd)
+				t += "<A href='?src=\ref[src];eject_module=hdd';usr=null>Eject [hdd.name]</A><BR>"
+			if(auth)
+				t += "<A href='?src=\ref[src];eject_module=auth'>Eject [auth.name]</A><BR>"
+			if(reader)
+				t += "<A href='?src=\ref[src];eject_module=reader'>Eject [reader.name]</A><BR>"
+			if(connector)
+				t += "<A href='?src=\ref[src];eject_module=connector'>Eject [connector.name]</A><BR>"
+			user.set_machine(src)
+			user << browse(t, "window=mainframe_hardware;size=250x400px")
+			onclose(user,"mainframe")
 		if(!on)
 			TurnOn()
 			return
-		var/t = ""
-		if(sys)
-			t = sys.Display(user)
+		else if(hdd)
+			var/t = ""
+			if(sys)
+				t = sys.Display(user)
+			else
+				t = "Welcome to NanoTrasen BIOS.<BR>"
+				t += "Prepared for loading. Please, choose OS to boot:<BR>"
+				for(var/datum/software/os/s in hdd.data)
+					t += "<A href='?src=\ref[src];OS=\ref[s]'>[s.GetName()]</A><BR>"
+			user.set_machine(src)
+			user << browse(t, "window=mainframe;size=[screen.size];can_resize=0")
+			onclose(user,"mainframe")
 		else
-			t = "Welcome to NanoTrasen BIOS.<BR>"
-			t += "Prepared for loading. Please, choose OS to boot:<BR>"
-			for(var/datum/software/os/s in hdd.data)
-				t += "<A href='?src=\ref[src];OS=\ref[s]'>[s.name]</A><BR>"
-		user.set_machine(src)
-		user << browse(t, "window=mainframe;size=[screen.size];can_resize=0")
-		onclose(user,"mainframe")
+			user.set_machine(src)
+			user << browse("HDD is not found.", "window=mainframe;size=[screen.size];can_resize=0")
+			onclose(user,"mainframe")
 
 	attack_ai(var/mob/user as mob)
 		world << "AI interact doesn't work right now"
@@ -103,6 +124,8 @@
 				reader.Insert(O)
 			else
 				usr << "You can't find disk reader"
+		else if(istype(O, /obj/item/weapon/hardware))
+			Insert(O)
 
 		updateUsrDialog()
 
@@ -122,6 +145,9 @@
 		else if(href_list["OS"])
 			var/datum/software/os = locate(href_list["OS"])
 			if(os && os in hdd.data) LaunchOS(os)
+
+		else if(href_list["eject_module"])
+			Eject(href_list["eject_module"])
 
 		else if(href_list["hddwriteon"])
 			if(hdd)
@@ -230,8 +256,80 @@
 		if(!SecurityAlert())
 			..()
 
+	proc/HardwareChange()
+		if(hdd)
+			for(var/datum/software/soft in hdd.data)
+				soft.HardwareChange()
+
 	proc/SecurityAlert() //Protection against non-fair using
 		if(!in_range(src, usr) && !istype(usr, /mob/living/silicon))
 			world << "Security Alert in ([x], [y], [z]). Try to avoid any message like this."
 			return 1
 		return 0
+
+	proc/Eject(var/module)
+		world << usr
+		switch(module)
+			if("hdd")
+				if(hdd)
+					hdd.Disconnect()
+					hdd.loc = src.loc
+					hdd = null
+					HardwareChange()
+			if("auth")
+				if(auth)
+					auth.Disconnect()
+					auth.loc = src.loc
+					auth = null
+					HardwareChange()
+			if("reader")
+				if(reader)
+					reader.Disconnect()
+					reader.loc = src.loc
+					reader = null
+					HardwareChange()
+			if("connector")
+				if(connector)
+					connector.Disconnect()
+					connector.loc = src.loc
+					connector = null
+					HardwareChange()
+
+	proc/Insert(var/obj/item/weapon/hardware/module)
+		if(module.hardware_type == "nothing")
+			usr << "It's nothing. How you get it?"
+			return
+
+		switch(module.hardware_type)
+			if("auth")
+				if(istype(module.loc, /mob))
+					usr.drop_item()
+				module.loc = src
+				auth = module
+				auth.Connect(src)
+				HardwareChange()
+			if("hdd")
+				if(istype(module.loc, /mob))
+					usr.drop_item()
+				module.loc = src
+				hdd = module
+				hdd.Connect(src)
+				HardwareChange()
+			if("reader")
+				if(istype(module.loc, /mob))
+					usr.drop_item()
+				module.loc = src
+				reader = module
+				reader.Connect(src)
+				HardwareChange()
+			if("connector")
+				if(istype(module.loc, /mob))
+					usr.drop_item()
+				module.loc = src
+				connector = module
+				connector.Connect(src)
+				HardwareChange()
+			else
+				usr << "You can't insert this module"
+
+
