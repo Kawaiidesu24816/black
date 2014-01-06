@@ -63,12 +63,17 @@
 		mainframe.updateUsrDialog()
 
 	//Unique local ID
+	//Edit by: Editor TEH Chaos-neutral
 	proc/GenerateID()
-		id = "[rand(1000,9999)]"
-		for(var/datum/software/soft in mainframe.hdd.data) //Soft are in hdd so we sure we have hdd
-			if(soft.id == id && soft != src)
-				GenerateID()
-				break
+	    var/idlist = list()
+	    if (mainframe)
+	        for (var/datum/software/soft in mainframe.hdd.data)
+	            if (soft != src)
+	                idlist += soft.id
+	        var/newid = rand(1000, 9999)
+	        while (newid in idlist)
+	            newid = rand(1000, 9999)
+	        id = newid
 
 	//ID and IP
 	proc/GlobalAddress()
