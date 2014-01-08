@@ -17,42 +17,35 @@
 	var/opened = 0
 	var/datum/software/os/sys = null
 
-	//Hardware
-	var/obj/item/weapon/hardware/screen/screen
-	var/obj/item/weapon/hardware/memory/hdd/hdd
-	var/obj/item/weapon/hardware/authentication/auth
-	var/obj/item/weapon/hardware/datadriver/reader
-	var/obj/item/weapon/hardware/wireless/connector/connector
-
 
 	New()
 		..()
 		InstallDefault()
 
 	proc/InstallDefault() //For changing default hardware and soft in childs
-		screen = new /obj/item/weapon/hardware/screen(src)
+		var/obj/item/weapon/hardware/screen/screen = new /obj/item/weapon/hardware/screen(src)
 		screen.ChangeScreenSize(500,500)
-		screen.Connect(src)
+		hard.Add(screen)
 
-		hdd = new /obj/item/weapon/hardware/memory/hdd(src)
+		var/obj/item/weapon/hardware/memory/hdd/hdd = new /obj/item/weapon/hardware/memory/hdd(src)
 		hdd.ChangeMemorySize(25)
-		hdd.Connect(src)
+		hard.Add(hdd)
 
-		auth = new /obj/item/weapon/hardware/authentication(src)
-		auth.Connect(src)
+		hard.Add(new /obj/item/weapon/hardware/authentication(src))
 
-		reader = new /obj/item/weapon/hardware/datadriver(src)
-		reader.Connect(src)
+		hard.Add(new /obj/item/weapon/hardware/datadriver(src))
 
-		connector = new /obj/item/weapon/hardware/wireless/connector(src)
-		connector.Connect(src)
+		hard.Add(new /obj/item/weapon/hardware/wireless/connector(src))
+
+		for(var/item/weapon/hardware/h in hard)
+			h.Connect(src)
 
 		//It is more easy way than use list of strings of ways of default soft
-		hdd.WriteOn(new /datum/software/os/sos(), 1)
-		hdd.WriteOn(new /datum/software/app/textfile(), 1)
+		//hdd.WriteOn(new /datum/software/os/sos(), 1)
+		//hdd.WriteOn(new /datum/software/app/textfile(), 1)
 
-		for(var/datum/software/soft in hdd.data)
-			soft.Setup(src)
+		//for(var/datum/software/soft in hdd.data)
+		//	soft.Setup(src)
 
 	proc/TurnOn()
 		if(stat & NOPOWER || use_power == 2)

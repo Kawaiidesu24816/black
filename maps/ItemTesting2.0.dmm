@@ -1,0 +1,70 @@
+"a" = (/turf/simulated/floor,/area/arrival/start)
+"b" = (/obj/machinery/newComputer/mainframe,/turf/simulated/floor,/area/arrival/start)
+"c" = (/obj/item/weapon/hardware/memory/disk,/turf/simulated/floor,/area/arrival/start)
+"d" = (/turf/space,/area)
+
+(1,1,1) = {"
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+ababaaaaaaaaaaaaaaaaaaaaaaaaaa
+abcbaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+"}
+
+(1,1,2) = {"
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+dddddddddddddddddddddddddddddd
+"}
