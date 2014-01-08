@@ -2,7 +2,6 @@
 	name = "Default hardware"
 	icon = 'icons/obj/newComp.dmi'
 	var/broken = 0
-	var/hardware_type = "nothing"
 	var/obj/machinery/newComputer/mainframe/mainframe
 
 	var/temperature = T20C
@@ -31,7 +30,6 @@
 
 /obj/item/weapon/hardware/authentication
 	name = "Auth module"
-	hardware_type = "auth"
 
 	var/obj/item/weapon/card/id/id
 	var/logged = 0
@@ -106,7 +104,6 @@
 /obj/item/weapon/hardware/datadriver
 	name = "Data reader"
 	icon_state = "datareader"
-	hardware_type = "reader"
 	var/obj/item/weapon/hardware/memory/disk/disk
 
 	proc/Insert(var/obj/item/weapon/hardware/memory/disk/d)
@@ -174,7 +171,6 @@
 /obj/item/weapon/hardware/memory/hdd
 	name = "Harddrive"
 	icon_state = "harddrive"
-	hardware_type = "hdd"
 	total_memory = 50
 	current_free_space = 50
 
@@ -220,7 +216,6 @@
 
 /obj/item/weapon/hardware/wireless/connector
 	name = "Connector"
-	hardware_type = "connector"
 	var/address = ""
 
 	Connect(var/obj/machinery/newComputer/mainframe/m)
@@ -262,3 +257,11 @@
 
 	proc/ToString()
 		return address + ":" + id
+
+///////////////////////////MOTHERBOARD///////////////////////////////////
+/obj/item/weapon/hardware/motherboard
+	name = "Connector"
+
+	proc/GetData()
+		return list()
+
