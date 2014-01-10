@@ -2,15 +2,20 @@
 	name = "Default hardware"
 	icon = 'icons/obj/newComp.dmi'
 	var/broken = 0
-	var/obj/machinery/newComputer/mainframe/mainframe
+	var/obj/machinery/newComputer/mainframe/M
 
 	var/temperature = T20C
 
 	proc/Connect(var/obj/machinery/newComputer/mainframe/m)
-		mainframe = m
+		M = m
 
 	proc/Disconnect()
-		mainframe = null
+		M = null
+
+	proc/Connected()
+		if(M)
+			return 1
+		return 0
 
 /obj/item/weapon/hardware/screen
 	var/size = "200x200"
@@ -28,7 +33,7 @@
 
 ////////////////////DISKS AND IDs//////////////////////////
 
-/obj/item/weapon/hardware/authentication
+/obj/item/weapon/hardware/auth //authentication
 	name = "Auth module"
 
 	var/obj/item/weapon/card/id/id
@@ -41,40 +46,36 @@
 		logged = 0
 		username = "unknown"
 		assignment = "unassigned"
-		if(mainframe && mainframe.hdd)
-			for(var/datum/software/soft in mainframe.hdd.data)
+		if(M && M.hdd)
+			for(var/datum/software/soft in M.hdd.data)
 				soft.LoginChange()
 		..()
 
 	proc/Login(var/inLog = 1)
-		if(!mainframe) return
+		if(!Connected()) return
 		if(logged)
-			world << "Trying to login when logged at [mainframe.x], [mainframe.y], [mainframe.z]"
+			world << "Trying to login when logged at [M.x], [M.y], [M.z]"
 		if(!id)
 			return
 		username = id.registered_name
 		assignment = id.assignment
 		access = id.access
 		logged = 1
-		if(mainframe.hdd)
-			for(var/datum/software/soft in mainframe.hdd.data)
-				soft.LoginChange()
-		if(inLog && mainframe.sys)
-			mainframe.sys.AddLogs("Logged as [username]")
+		for(var/datum/software/soft in M.Data())
+			soft.LoginChange()
+		M.Log("Logged as [username]")
 
 	proc/Logout(var/inLog = 1)
-		if(!mainframe) return
+		if(!Connected()) return
 		if(!logged)
-			world << "Trying to logout when not logged at [mainframe.x], [mainframe.y], [mainframe.z]"
+			world << "Trying to logout when not logged at [M.x], [M.y], [M.z]"
 		username = "unknown"
 		assignment = "unassigned"
 		access = list()
 		logged = 0
-		if(mainframe.hdd)
-			for(var/datum/software/soft in mainframe.hdd.data)
-				soft.LoginChange()
-		if(inLog && mainframe.sys)
-			mainframe.sys.AddLogs("Logged out")
+		for(var/datum/software/soft in M.Data())
+			soft.LoginChange()
+		M.Log("Logged out")
 
 	proc/Insert(var/obj/item/weapon/card/id/insertedID)
 		//Separated checks is important cause player can insert an ID when auth module is removed
@@ -90,7 +91,7 @@
 	proc/Eject()
 		if(!id)
 			return
-		id.loc = mainframe.loc
+		id.loc = M.loc
 		id = null
 
 	proc/CheckAccess(var/list/input)
@@ -119,7 +120,7 @@
 	proc/Eject()
 		if(!disk)
 			return
-		disk.loc = mainframe.loc
+		disk.loc = M.loc
 		disk = null
 
 /////////////////////////MEMORY/////////////////////
@@ -140,6 +141,7 @@
 		if(soft.size > current_free_space)
 			return 0
 		data.Add(soft)
+		if(M) soft.Connect(M)
 		if(expand)
 			total_memory += soft.size
 		else
@@ -159,7 +161,7 @@
 	proc/Space()
 		return "[current_free_space] of [total_memory] TeraByte"
 
-	proc/Problem(var/datum/software/soft)
+	proc/InstallationTrouble(var/datum/software/soft)
 		//for(var/datum/software/app in data)
 		//	if(app.name == soft.name)
 		//		return 1
@@ -177,7 +179,7 @@
 	Connect(var/obj/machinery/newComputer/mainframe/m)
 		..()
 		for(var/datum/software/soft in data)
-			soft.Setup(m)
+			soft.Connect(m)
 
 	Disconnect()
 		..()
@@ -189,7 +191,7 @@
 	icon_state = "disk0"
 	item_state = "card-id"
 	var/list/default_soft = list(
-	"/datum/software/app/medical_records"              ,\
+	"/datum/software/app/chat"         ,\
 	)
 	var/protected = 0
 
@@ -226,6 +228,7 @@
 		..()
 		address = "Local"
 
+	//Remark: prevent recursive looping but im too lazy
 	proc/GenerateAddress()
 		address = "[rand(1000, 9999)]-[rand(1000, 9999)]"
 		for(var/obj/item/weapon/hardware/wireless/connector/con in world)
@@ -240,12 +243,13 @@
 			if(con.address != sender.address)
 				con.RecieveSignal(reciever, sender, data)
 
+	//Change this if you want to make coolhacker tool
 	proc/RecieveSignal(var/datum/connectdata/reciever, var/datum/connectdata/sender, var/list/data)
 		if(reciever.address && reciever.address != src.address)
 			return //Refuse Connection
-		if(!mainframe.on)
+		if(!M.on)
 			return
-		mainframe.RecieveSignal(reciever, sender, data)
+		M.RecieveSignal(reciever, sender, data)
 
 /datum/connectdata
 	var/address = ""
@@ -256,12 +260,5 @@
 		id = i
 
 	proc/ToString()
-		return address + ":" + id
-
-///////////////////////////MOTHERBOARD///////////////////////////////////
-/obj/item/weapon/hardware/motherboard
-	name = "Connector"
-
-	proc/GetData()
-		return list()
+		return address + ":" + "[id]"
 

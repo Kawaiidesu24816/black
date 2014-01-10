@@ -1,7 +1,8 @@
 "a" = (/turf/simulated/floor,/area/arrival/start)
 "b" = (/obj/machinery/newComputer/mainframe,/turf/simulated/floor,/area/arrival/start)
 "c" = (/obj/item/weapon/hardware/memory/disk,/turf/simulated/floor,/area/arrival/start)
-"d" = (/turf/space,/area)
+"d" = (/obj/item/weapon/screwdriver,/turf/simulated/floor,/area/arrival/start)
+"e" = (/turf/space,/area)
 
 (1,1,1) = {"
 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
@@ -31,40 +32,40 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 ababaaaaaaaaaaaaaaaaaaaaaaaaaa
 abcbaaaaaaaaaaaaaaaaaaaaaaaaaa
-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaadaaaaaaaaaaaaaaaaaaaaaaaaaa
 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 "}
 
 (1,1,2) = {"
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
-dddddddddddddddddddddddddddddd
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeee
 "}

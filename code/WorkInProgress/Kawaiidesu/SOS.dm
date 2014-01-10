@@ -1,9 +1,10 @@
-/datum/software/os/sos
+/datum/software/os/sos //Standard/Station Operation System
 	name = "SOS"
 	size = 10
 	display_icon = "ai-fixer"
 	var/current_state = "mainscreen"
 	var/lastlogs[5]
+	var/sysmessage = ""
 	var/datum/software/app/current_prog
 
 	Display(var/mob/user)
@@ -13,29 +14,29 @@
 		else
 			switch(current_state)
 				if("mainscreen")
-					t += "Welcome to Station Operation System (SOS)<BR>"
+					t += "Welcome to Standard Operation System (SOS)<BR>"
 					t += "<A href='?src=\ref[src];setstate=filemanager'>Launch filemanager</A><BR>"
 					t += "------<BR>"
-					for(var/datum/software/app/app in mainframe.hdd.data)
+					for(var/datum/software/app/app in M.Data())
 						t += "<A href='?src=\ref[src];runapp=\ref[app]'>[app.GetName()]</A><BR>"
 					t += "------<BR>"
-					t += "<A href='?src=\ref[mainframe];turnoff=1'>Turn Off</A><BR>"
-					t += "<A href='?src=\ref[mainframe];BIOS=1'>Reboot</A><BR>"
+					t += "<A href='?src=\ref[M];turnoff=1'>Turn Off</A><BR>"
+					t += "<A href='?src=\ref[M];BIOS=1'>Reboot</A><BR>"
 				if("filemanager")
-					var/rstate = mainframe.ReaderProblem()
+					var/rstate = M.ReaderTrouble()
 
 					t += "Welcome to SOS File Manager."// <A href='?src=\ref[src];setstate=mainscreen'>Return to main menu</A><BR>"
-					t += "You have [mainframe.hdd.Space()] memory.<BR>"
+					t += "You have [M.hdd.Space()] memory.<BR>"
 					t += "Installed programms is:<BR>"
-					for(var/datum/software/os/soft in mainframe.hdd.data)
+					for(var/datum/software/os/soft in M.Data())
 						t += "[soft.GetName()]<BR>"
 					t += "------<BR>"
-					for(var/datum/software/app/soft in mainframe.hdd.data)
-						if(!rstate && !mainframe.reader.disk.Problem(soft))
-							t += "<A href='?src=\ref[mainframe];diskwriteon=\ref[soft]'>(C)</A>"
+					for(var/datum/software/app/soft in M.Data())
+						if(!rstate && !M.reader.disk.InstallationTrouble(soft))
+							t += "<A href='?src=\ref[M];diskwriteon=\ref[soft]'>(C)</A>"
 						else
 							t += "(C)"
-						t += "<A href='?src=\ref[mainframe];hddremove=\ref[soft]'>(R)</A>"
+						t += "<A href='?src=\ref[M];hddremove=\ref[soft]'>(R)</A>"
 						t += "[soft.GetName()]<BR>"
 					t += "------<BR>"
 
@@ -45,14 +46,14 @@
 					else if(rstate == 2)
 						t += "Please insert disk<BR>"
 					else if(!rstate)
-						t += "Disk have [mainframe.reader.disk.Space()] memory<BR>"
+						t += "Disk have [M.reader.disk.Space()] memory<BR>"
 						t += "Files on disk<BR>"
-						for(var/datum/software/soft in mainframe.reader.disk.data)
-							if(!mainframe.hdd.Problem(soft))
-								t += "<A href='?src=\ref[mainframe];hddwriteon=\ref[soft]'>(C)</A>"
+						for(var/datum/software/soft in M.reader.disk.data)
+							if(!M.hdd.InstallationTrouble(soft))
+								t += "<A href='?src=\ref[M];hddwriteon=\ref[soft]'>(C)</A>"
 							else
 								t += "(C)"
-							t += "<A href='?src=\ref[mainframe];diskremove=\ref[soft]'>(R)</A>"
+							t += "<A href='?src=\ref[M];diskremove=\ref[soft]'>(R)</A>"
 							t += "[soft.name]<BR>"
 				//if("sharescreen") MADNESS! NEVER UNCOMMENT THAT!
 				//	if(connections.len > 0)
@@ -65,8 +66,8 @@
 
 		return t + Footer()
 
-	Setup(var/obj/machinery/newComputer/mainframe/M)
-		..(M)
+	Connect(var/obj/machinery/newComputer/mainframe/M)
+		..()
 		for(var/i = 1; i <= 5; i++)
 			lastlogs[i] = ""
 
@@ -97,30 +98,28 @@
 		var/text = {"
 		<html><head>
 		<style type='text/css'>
-		.prog{width:[mainframe.screen.width - 200]px;heigth:[mainframe.screen.heigth]px;float:left;}
-		.sys{width:200px;height:[mainframe.screen.heigth]px;float:right;background:#ccc;position:absolute;top:0px;left:[mainframe.screen.width - 200]px;}
+		.prog{width:[M.screen.width - 200]px;heigth:[M.screen.heigth]px;float:left;}
+		.sys{width:200px;height:[M.screen.heigth]px;float:right;background:#ccc;position:absolute;top:0px;left:[M.screen.width - 200]px;}
 		</style>
-
 		</head><body><div class='prog'>
 		"}
 		return text
 
 	proc/Footer()
 		var/text = "</div><div class='sys'>"
-		if(mainframe.auth)
-			if(mainframe.auth.logged)
+		if(M.auth)
+			if(M.auth.logged)
 				text += {"
-				Logged in as [mainframe.auth.username]<BR>
-				[mainframe.auth.assignment]<BR>
-				<A href='?src=\ref[mainframe];logout=1'>Logout</A><BR>
+				Logged in as [M.User()]<BR>
+				[M.Assignment()]<BR>
+				<A href='?src=\ref[M];logout=1'>Logout</A><BR>
 				"}
 			else
-				text += "Please <A href='?src=\ref[mainframe];login=1'>login</A><BR>"
-			if(mainframe.auth.id)
-				text += "<A href='?src=\ref[mainframe];ejectid=1'>Eject ID</A><BR>"
-		if(mainframe.reader)
-			if(mainframe.reader.disk)
-				text += "<A href='?src=\ref[mainframe];ejectdisk=1'>Eject Disk</A><BR>"
+				text += "Please <A href='?src=\ref[M];login=1'>login</A><BR>"
+			if(M.auth.id)
+				text += "<A href='?src=\ref[M];ejectid=1'>Eject ID</A><BR>"
+		if(!M.ReaderTrouble())
+			text += "<A href='?src=\ref[M];ejectdisk=1'>Eject Disk</A><BR>"
 		if(current_prog || current_state != "mainscreen")
 			text += "<A href='?src=\ref[src];closeapp=1'>Exit to main menu</A><BR>"
 		text += "------<BR>"
@@ -149,10 +148,12 @@
 		if(soft.required_sys && !soft.required_sys == src.type) return
 		current_prog = soft
 		current_prog.OnStart()
-		mainframe.update_icon()
+		M.update_icon()
 
 	Close()
-		if(!current_prog) return
-		current_prog.OnExit()
-		current_prog = null
-		mainframe.update_icon()
+		if(!current_prog)
+			current_state = "mainscreen"
+		else
+			current_prog.OnExit()
+			current_prog = null
+			M.update_icon()

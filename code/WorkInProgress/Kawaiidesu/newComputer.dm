@@ -17,35 +17,41 @@
 	var/opened = 0
 	var/datum/software/os/sys = null
 
+	var/obj/item/weapon/hardware/screen/screen
+	var/obj/item/weapon/hardware/memory/hdd/hdd
+	var/obj/item/weapon/hardware/auth/auth
+	var/obj/item/weapon/hardware/datadriver/reader
+	var/obj/item/weapon/hardware/wireless/connector/connector
+
 
 	New()
 		..()
 		InstallDefault()
 
 	proc/InstallDefault() //For changing default hardware and soft in childs
-		var/obj/item/weapon/hardware/screen/screen = new /obj/item/weapon/hardware/screen(src)
+		screen = new /obj/item/weapon/hardware/screen(src)
 		screen.ChangeScreenSize(500,500)
-		hard.Add(screen)
+		screen.Connect(src)
 
-		var/obj/item/weapon/hardware/memory/hdd/hdd = new /obj/item/weapon/hardware/memory/hdd(src)
+		hdd = new /obj/item/weapon/hardware/memory/hdd(src)
 		hdd.ChangeMemorySize(25)
-		hard.Add(hdd)
+		hdd.Connect(src)
 
-		hard.Add(new /obj/item/weapon/hardware/authentication(src))
+		auth = new /obj/item/weapon/hardware/auth(src)
+		auth.Connect(src)
 
-		hard.Add(new /obj/item/weapon/hardware/datadriver(src))
+		reader = new /obj/item/weapon/hardware/datadriver(src)
+		reader.Connect(src)
 
-		hard.Add(new /obj/item/weapon/hardware/wireless/connector(src))
-
-		for(var/item/weapon/hardware/h in hard)
-			h.Connect(src)
+		connector = new /obj/item/weapon/hardware/wireless/connector(src)
+		connector.Connect(src)
 
 		//It is more easy way than use list of strings of ways of default soft
-		//hdd.WriteOn(new /datum/software/os/sos(), 1)
-		//hdd.WriteOn(new /datum/software/app/textfile(), 1)
+		hdd.WriteOn(new /datum/software/os/sos(), 1)
+		hdd.WriteOn(new /datum/software/app/textfile(), 1)
 
-		//for(var/datum/software/soft in hdd.data)
-		//	soft.Setup(src)
+		for(var/datum/software/soft in Data())
+			soft.Connect(src)
 
 	proc/TurnOn()
 		if(stat & NOPOWER || use_power == 2)
@@ -119,12 +125,15 @@
 				usr << "You can't find disk reader"
 		else if(istype(O, /obj/item/weapon/hardware))
 			Insert(O)
+		else if(istype(O, /obj/item/weapon/screwdriver))
+			opened = !opened
+			user << "[src] is [opened ? "opened" : "closed"] now"
 
 		updateUsrDialog()
 
 
 	Topic(href, href_list)
-		//Functionality Processing
+		//Computer(sic!) Functionality Processing,
 		if(href_list["on-close"])
 			usr.unset_machine()
 			usr << browse(null, "window=mainframe")
@@ -144,20 +153,17 @@
 
 		else if(href_list["hddwriteon"])
 			if(hdd)
-				var/datum/software/soft = locate(href_list["hddwriteon"])
-				hdd.WriteOn(locate(soft))
-				soft.Setup(src)
+				hdd.WriteOn(locate(href_list["hddwriteon"]))
 
 		else if(href_list["hddremove"])
 			if(hdd)
-				var/datum/software/soft = locate(href_list["hddwriteon"])
-				hdd.Remove(locate(soft))
+				hdd.Remove(locate(href_list["hddremove"]))
 
 		else if(href_list["diskwriteon"])
-			if(!ReaderProblem()) reader.disk.WriteOn(locate(href_list["diskwriteon"]))
+			if(!ReaderTrouble()) reader.disk.WriteOn(locate(href_list["diskwriteon"]))
 
 		else if(href_list["diskremove"])
-			if(!ReaderProblem()) reader.disk.Remove(locate(href_list["diskremove"]))
+			if(!ReaderTrouble()) reader.disk.Remove(locate(href_list["diskremove"]))
 
 		else if(href_list["ejectid"])
 			if(auth) auth.Eject()
@@ -173,23 +179,23 @@
 
 		else if(sys)
 			sys.Topic(href, href_list)
-			return //Update will be made in soft Topic()
+			return //Update will be made in soft Topic() after display changing
 
 		updateUsrDialog()
 
 	proc/LaunchOS(var/datum/software/os/newos = null)
 
-		if(newos && newos in hdd.data)
+		if(newos && newos in Data())
 			sys = newos
-			sys.Setup(src)
+			//sys.Connect(src)
 		else
 			sys = null
 			if(auth.logged)
 				auth.Logout(0)
 		update_icon()
 
-	//Hardware problems
-	proc/AccessProblem(var/list/access)
+	//Hardware trouble checks
+	proc/CheckAccess(var/list/access)
 		if(!auth)
 			return 1
 		if(!auth.logged)
@@ -198,19 +204,26 @@
 			return 3
 		return 0
 
-	proc/MemoryProblem()
+	proc/AuthTrouble()
+		if(!auth)
+			return 1
+		if(!auth.logged)
+			return 2
+		return 0
+
+	proc/MemoryTrouble()
 		if(!hdd)
 			return 1
 		return 0
 
-	proc/ReaderProblem()
+	proc/ReaderTrouble()
 		if(!reader)
 			return 1
 		if(!reader.disk)
 			return 2
 		return 0
 
-	proc/NetProblem()
+	proc/NetworkTrouble()
 		if(!connector)
 			return 1
 		return 0
@@ -249,16 +262,17 @@
 		if(!SecurityAlert())
 			..()
 
-	proc/HardwareChange()
-		if(hdd)
-			for(var/datum/software/soft in hdd.data)
-				soft.HardwareChange()
-
 	proc/SecurityAlert() //Protection against non-fair using
 		if(!in_range(src, usr) && !istype(usr, /mob/living/silicon))
 			world << "Security Alert in ([x], [y], [z]). Try to avoid any message like this."
 			return 1
 		return 0
+
+
+	//Hardware stuff
+	proc/HardwareChange()
+		for(var/datum/software/soft in Data())
+			soft.HardwareChange()
 
 	proc/Eject(var/module)
 		world << usr
@@ -288,41 +302,59 @@
 					connector = null
 					HardwareChange()
 
-	proc/Insert(var/obj/item/weapon/hardware/module)
-		if(module.hardware_type == "nothing")
-			usr << "It's nothing. How you get it?"
+	proc/Insert(var/obj/module) //Worst code ever
+		if(!istype(module, /obj/item/weapon/hardware))
 			return
 
-		switch(module.hardware_type)
-			if("auth")
-				if(istype(module.loc, /mob))
-					usr.drop_item()
-				module.loc = src
-				auth = module
-				auth.Connect(src)
-				HardwareChange()
-			if("hdd")
-				if(istype(module.loc, /mob))
-					usr.drop_item()
-				module.loc = src
-				hdd = module
-				hdd.Connect(src)
-				HardwareChange()
-			if("reader")
-				if(istype(module.loc, /mob))
-					usr.drop_item()
-				module.loc = src
-				reader = module
-				reader.Connect(src)
-				HardwareChange()
-			if("connector")
-				if(istype(module.loc, /mob))
-					usr.drop_item()
-				module.loc = src
-				connector = module
-				connector.Connect(src)
-				HardwareChange()
-			else
-				usr << "You can't insert this module"
+		if(istype(module, /obj/item/weapon/hardware/auth))
+			if(istype(module.loc, /mob))
+				usr.drop_item()
+			module.loc = src
+			auth = module
+			auth.Connect(src)
+			HardwareChange()
+		else if(istype(module, /obj/item/weapon/hardware/memory/hdd))
+			if(istype(module.loc, /mob))
+				usr.drop_item()
+			module.loc = src
+			hdd = module
+			hdd.Connect(src)
+			HardwareChange()
+		else if(istype(module, /obj/item/weapon/hardware/datadriver))
+			if(istype(module.loc, /mob))
+				usr.drop_item()
+			module.loc = src
+			reader = module
+			reader.Connect(src)
+			HardwareChange()
+		else if(istype(module, /obj/item/weapon/hardware/wireless/connector))
+			if(istype(module.loc, /mob))
+				usr.drop_item()
+			module.loc = src
+			connector = module
+			connector.Connect(src)
+			HardwareChange()
+		else
+			usr << "You can't insert this module"
 
+	//Helpers
+	proc/Data()
+		if(!hdd)
+			return list()
+		return hdd.data
 
+	proc/Log(var/text)
+		if(sys)
+			sys.AddLogs(text)
+
+	proc/User()
+		if(AuthTrouble()) return "unknown"
+		return auth.username
+
+	proc/Assignment()
+		if(AuthTrouble()) return "unassigned"
+		return auth.assignment
+
+	proc/CloseApp()
+		if(sys)
+			sys.Close()
